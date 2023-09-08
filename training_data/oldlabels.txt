@@ -1,0 +1,40 @@
+
+{
+	0: 'Not TikTok',
+	1: 'TikTok video player',
+	2: 'Scrolling',
+	3: 'Liked video player', # starts once heart turns red even if small
+	4: 'Sharing', # starts once share frame begins to expand
+	5: 'About this ad', # starts once frame begins to expand
+	6: 'Why recommended',
+	# TODO: differentiate ads from other content
+}
+
+
+
+# from first video
+
+{
+    0: 0, # not tiktok
+    355: 1, # tiktok
+    424: 2, #scrolling
+    463: 1,
+    499: 2,
+    518: 1,
+    578: 2,
+    599: 1,
+    637: 2,
+    656: 1,
+    691: 2,
+    711: 1,
+    749: 2,
+    769: 1,
+    811: 2,
+    834: 1,
+    872: 2,
+    891: 1,
+    929: 2,
+    946: 1,
+    984: 0,
+    1208: 0,
+}
