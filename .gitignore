@@ -1,0 +1,3 @@
+training_data/screen_recordings/*.mp4
+frames/*
+.DS_Store
