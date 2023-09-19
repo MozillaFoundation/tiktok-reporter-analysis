@@ -94,6 +94,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train the model with specified directory of training data and labels text file.')
     parser.add_argument('train_dir', type=str, help='Directory of training data')
     parser.add_argument('labels_file', type=str, help='File of labels')
+    parser.add_argument('checkpoint_dir', type=str, help='Directory to save the best model checkpoint')
     args = parser.parse_args()
 
     # Load paths and labels
@@ -143,7 +144,14 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
     n_epochs = 10
+    best_test_loss = float('inf')
     for epoch in range(n_epochs):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         test_loss, test_acc = evaluate(model, test_loader, criterion, device)
         print(f"Epoch: {epoch+1}/{n_epochs}.. Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
+
+        # Save the model checkpoint if it has the best test loss so far
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
+            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, 'best_model.pth'))
+            print(f"New best model saved to {args.checkpoint_dir}")
