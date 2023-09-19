@@ -4,6 +4,7 @@ import torch
 import torchvision.transforms as transforms
 import timm
 import argparse
+import pandas as pd
 
 def load_checkpoint_and_predict(image_path, checkpoint_path):
     # Define the same transform as used in training
@@ -54,7 +55,32 @@ def main():
         prediction = load_checkpoint_and_predict(image_path, args.checkpoint_path)
         predictions.append((image_path, prediction))
 
-    print(f"The predicted classes are: {predictions}")  
+    event_names = {
+        0: 'Not TikTok',
+        1: 'TikTok video player',
+        2: 'Scrolling',
+        3: 'Liked video player',
+        4: 'Sharing',
+        5: 'About this ad',
+        6: 'Why recommended',
+    }
+
+    # Convert the list to a pandas DataFrame
+    df = pd.DataFrame({'classification': [pred[1] for pred in predictions]})
+
+    # Calculate the difference between consecutive rows
+    df['change'] = df['classification'].diff()
+
+    # Filter out rows where there's no change and reset the index
+    change_df = df[df['change'].notna() & (df['change'] != 0)].reset_index()
+
+    # Map classification to event name
+    change_df['event_name'] = change_df['classification'].map(event_names)
+
+    # The resulting DataFrame
+    result_df = change_df[['index', 'event_name']].rename(columns={'index': 'frame'})
+
+    print(result_df)
 
 if __name__ == "__main__":
     main()
