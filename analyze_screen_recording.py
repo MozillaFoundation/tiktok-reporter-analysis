@@ -24,13 +24,20 @@ def load_checkpoint_and_predict(image_path, checkpoint_path):
     # Load the checkpoint
     model.load_state_dict(torch.load(checkpoint_path))
 
-    # Check if CUDA is available and if so, use it
-    if torch.cuda.is_available():
+    use_mps = torch.backends.mps.is_available()
+    print(f"MPS available: {use_mps}")
+
+    # If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
+    if use_mps:
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
         device = torch.device("cuda")
-        model = model.to(device)
-        image = image.to(device)
     else:
         device = torch.device("cpu")
+
+    print(f"Using device: {device}")
+    model = model.to(device)
+    image = image.to(device)
 
     # Set the model to evaluation mode
     model.eval()
@@ -66,8 +73,8 @@ def main():
     }
 
     # Convert the list to a pandas DataFrame
-    df = pd.DataFrame({'classification': [pred[1] for pred in predictions]})
-
+    raw_predictions = pd.DataFrame({'classification': [pred[1] for pred in predictions]})
+    df = raw_predictions.copy(deep=True)
     # Calculate the difference between consecutive rows
     df['change'] = df['classification'].diff()
 
@@ -77,10 +84,22 @@ def main():
     # Map classification to event name
     change_df['event_name'] = change_df['classification'].map(event_names)
 
+    # Identify single frame events and replace their classification with the previous frame's classification
+    # Only if the classification of the current frame is also different from the previous frame's classification
+    # And the frame numbers are adjacent
+    single_frame_events = change_df[(change_df['classification'].shift(-1) != change_df['classification']) & (change_df['classification'].shift(1) != change_df['classification']) & (change_df['index'].diff().abs() == 1)]
+    for index in single_frame_events.index:
+        if index > 0:  # Skip the first frame
+            change_df.loc[index, 'classification'] = change_df.loc[index - 1, 'classification']
+            change_df.loc[index, 'event_name'] = change_df.loc[index - 1, 'event_name']
+
     # The resulting DataFrame
     result_df = change_df[['index', 'event_name']].rename(columns={'index': 'frame'})
 
-    print(result_df)
+    # Save the DataFrame to a CSV file
+    result_df.to_csv('frame_event_data.csv', index=False)
+    raw_predictions['event_name'] = raw_predictions['classification'].map(event_names)
+    raw_predictions.reset_index().rename(columns={'index': 'frame'}).to_csv('frame_classification_data.csv', index=False)
 
 if __name__ == "__main__":
     main()
