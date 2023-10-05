@@ -1,17 +1,21 @@
+import argparse
 import os
-from PIL import Image
+
+import pandas as pd
+import timm
 import torch
 import torchvision.transforms as transforms
-import timm
-import argparse
-import pandas as pd
+from PIL import Image
+
 
 def load_checkpoint_and_predict(image_path, checkpoint_path):
     # Define the same transform as used in training
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ]
+    )
 
     # Load the image
     image = Image.open(image_path).convert("RGB")
@@ -19,7 +23,7 @@ def load_checkpoint_and_predict(image_path, checkpoint_path):
     image = image.unsqueeze(0)  # Add batch dimension
 
     # Load the model
-    model = timm.create_model('vit_tiny_patch16_224', pretrained=False, num_classes=7)
+    model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=7)
 
     # Load the checkpoint
     model.load_state_dict(torch.load(checkpoint_path))
@@ -49,13 +53,20 @@ def load_checkpoint_and_predict(image_path, checkpoint_path):
 
     return predicted.item()
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Analyze images in a directory')
-    parser.add_argument('image_dir', type=str, help='Directory of images to analyze')
-    parser.add_argument('checkpoint_path', type=str, help='Path to model checkpoint')
+    parser = argparse.ArgumentParser(description="Analyze images in a directory")
+    parser.add_argument("image_dir", type=str, help="Directory of images to analyze")
+    parser.add_argument("checkpoint_path", type=str, help="Path to model checkpoint")
     args = parser.parse_args()
 
-    image_files = sorted([os.path.join(args.image_dir, f) for f in os.listdir(args.image_dir) if os.path.isfile(os.path.join(args.image_dir, f))])
+    image_files = sorted(
+        [
+            os.path.join(args.image_dir, f)
+            for f in os.listdir(args.image_dir)
+            if os.path.isfile(os.path.join(args.image_dir, f))
+        ]
+    )
 
     predictions = []
     for image_path in image_files:
@@ -63,43 +74,50 @@ def main():
         predictions.append((image_path, prediction))
 
     event_names = {
-        0: 'Not TikTok',
-        1: 'TikTok video player',
-        2: 'Scrolling',
-        3: 'Liked video player',
-        4: 'Sharing',
-        5: 'About this ad',
-        6: 'Why recommended',
+        0: "Not TikTok",
+        1: "TikTok video player",
+        2: "Scrolling",
+        3: "Liked video player",
+        4: "Sharing",
+        5: "About this ad",
+        6: "Why recommended",
     }
 
     # Convert the list to a pandas DataFrame
-    raw_predictions = pd.DataFrame({'classification': [pred[1] for pred in predictions]})
+    raw_predictions = pd.DataFrame({"classification": [pred[1] for pred in predictions]})
     df = raw_predictions.copy(deep=True)
     # Calculate the difference between consecutive rows
-    df['change'] = df['classification'].diff()
+    df["change"] = df["classification"].diff()
 
     # Filter out rows where there's no change and reset the index
-    change_df = df[df['change'].notna() & (df['change'] != 0)].reset_index()
+    change_df = df[df["change"].notna() & (df["change"] != 0)].reset_index()
 
     # Map classification to event name
-    change_df['event_name'] = change_df['classification'].map(event_names)
+    change_df["event_name"] = change_df["classification"].map(event_names)
 
     # Identify single frame events and replace their classification with the previous frame's classification
     # Only if the classification of the current frame is also different from the previous frame's classification
     # And the frame numbers are adjacent
-    single_frame_events = change_df[(change_df['classification'].shift(-1) != change_df['classification']) & (change_df['classification'].shift(1) != change_df['classification']) & (change_df['index'].diff().abs() == 1)]
+    single_frame_events = change_df[
+        (change_df["classification"].shift(-1) != change_df["classification"])
+        & (change_df["classification"].shift(1) != change_df["classification"])
+        & (change_df["index"].diff().abs() == 1)
+    ]
     for index in single_frame_events.index:
         if index > 0:  # Skip the first frame
-            change_df.loc[index, 'classification'] = change_df.loc[index - 1, 'classification']
-            change_df.loc[index, 'event_name'] = change_df.loc[index - 1, 'event_name']
+            change_df.loc[index, "classification"] = change_df.loc[index - 1, "classification"]
+            change_df.loc[index, "event_name"] = change_df.loc[index - 1, "event_name"]
 
     # The resulting DataFrame
-    result_df = change_df[['index', 'event_name']].rename(columns={'index': 'frame'})
+    result_df = change_df[["index", "event_name"]].rename(columns={"index": "frame"})
 
     # Save the DataFrame to a CSV file
-    result_df.to_csv('frame_event_data.csv', index=False)
-    raw_predictions['event_name'] = raw_predictions['classification'].map(event_names)
-    raw_predictions.reset_index().rename(columns={'index': 'frame'}).to_csv('frame_classification_data.csv', index=False)
+    result_df.to_csv("frame_event_data.csv", index=False)
+    raw_predictions["event_name"] = raw_predictions["classification"].map(event_names)
+    raw_predictions.reset_index().rename(columns={"index": "frame"}).to_csv(
+        "frame_classification_data.csv", index=False
+    )
+
 
 if __name__ == "__main__":
     main()

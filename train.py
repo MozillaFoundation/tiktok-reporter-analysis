@@ -1,17 +1,18 @@
-from torch.utils.data import DataLoader, Dataset, random_split
-import torchvision.transforms as transforms
-import torch
-import timm
 import json
 import os
+
+import timm
+import torch
+import torchvision.transforms as transforms
 from PIL import Image
+from torch.utils.data import DataLoader, Dataset, random_split
 
 
 def generate_label_list(transitions):
     # Convert keys to integers and find the max key to determine the size of the list
     transitions = {int(k): v for k, v in transitions.items()}
     max_index = max(transitions.keys())
-    label_list = [0] * (max_index + 1) # Initialize with zeros, or any default value
+    label_list = [0] * (max_index + 1)  # Initialize with zeros, or any default value
 
     previous_index = 0
     for index in sorted(transitions.keys()):
@@ -22,6 +23,7 @@ def generate_label_list(transitions):
     label_list[previous_index:] = [transitions[previous_index]] * (max_index + 1 - previous_index)
 
     return label_list
+
 
 class CustomDataset(Dataset):
     def __init__(self, image_paths, labels, transform=None):
@@ -41,11 +43,6 @@ class CustomDataset(Dataset):
             image = self.transform(image)
 
         return image, label, img_path
-    
-
-
-
-
 
 
 def train_epoch(model, train_loader, criterion, optimizer, device):
@@ -67,7 +64,8 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
 
-    return running_loss / len(train_loader), 100. * correct / total
+    return running_loss / len(train_loader), 100.0 * correct / total
+
 
 def evaluate(model, test_loader, criterion, device):
     model.eval()
@@ -86,33 +84,40 @@ def evaluate(model, test_loader, criterion, device):
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-    return running_loss / len(test_loader), 100. * correct / total
+    return running_loss / len(test_loader), 100.0 * correct / total
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Train the model with specified directory of training data and labels text file.')
-    parser.add_argument('train_dir', type=str, help='Directory of training data')
-    parser.add_argument('labels_file', type=str, help='File of labels')
-    parser.add_argument('checkpoint_dir', type=str, help='Directory to save the best model checkpoint')
+
+    parser = argparse.ArgumentParser(
+        description="Train the model with specified directory of training data and labels text file."
+    )
+    parser.add_argument("train_dir", type=str, help="Directory of training data")
+    parser.add_argument("labels_file", type=str, help="File of labels")
+    parser.add_argument("checkpoint_dir", type=str, help="Directory to save the best model checkpoint")
     args = parser.parse_args()
 
     # Load paths and labels
     image_folder = args.train_dir
     labels = []
 
-    with open(args.labels_file, 'r') as f:
+    with open(args.labels_file, "r") as f:
         data = json.load(f)
-        labels = generate_label_list(data[0]['events']) # TEMP HACK
+        labels = generate_label_list(data[0]["events"])  # TEMP HACK
 
-    image_files = [os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))]
+    image_files = [
+        os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))
+    ]
     print(f"There are {len(image_files)} files and {len(labels)} labels.")
     image_files.sort()
 
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ]
+    )
 
     full_dataset = CustomDataset(image_files, labels, transform=transform)
 
@@ -124,7 +129,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     full_loader = DataLoader(full_dataset, batch_size=32, shuffle=False)
 
-    model = timm.create_model('vit_tiny_patch16_224', pretrained=True, num_classes=7)
+    model = timm.create_model("vit_tiny_patch16_224", pretrained=True, num_classes=7)
     # Check if MPS (Multi-Process Service) is available
     use_mps = torch.backends.mps.is_available()
     print(f"MPS available: {use_mps}")
@@ -144,14 +149,22 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
     n_epochs = 10
-    best_test_loss = float('inf')
+    best_test_loss = float("inf")
     for epoch in range(n_epochs):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         test_loss, test_acc = evaluate(model, test_loader, criterion, device)
-        print(f"Epoch: {epoch+1}/{n_epochs}.. Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
+        print(
+            print(
+                f"Epoch: {epoch+1}/{n_epochs}.. "
+                f"Train Loss: {train_loss:.4f}, "
+                f"Train Acc: {train_acc:.2f}%, "
+                f"Test Loss: {test_loss:.4f}, "
+                f"Test Acc: {test_acc:.2f}%"
+            )
+        )
 
         # Save the model checkpoint if it has the best test loss so far
         if test_loss < best_test_loss:
             best_test_loss = test_loss
-            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, 'best_model.pth'))
+            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "best_model.pth"))
             print(f"New best model saved to {args.checkpoint_dir}")
