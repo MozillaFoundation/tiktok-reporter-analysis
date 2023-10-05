@@ -1,5 +1,7 @@
 import os
+
 import cv2
+
 
 def extract_frames_from_video(video_path, output_folder):
     # Ensure output directory exists
@@ -34,6 +36,7 @@ def extract_frames_from_video(video_path, output_folder):
     cap.release()
     print("Frames extraction completed.")
 
+
 if __name__ == "__main__":
     import argparse
 
@@ -49,4 +52,3 @@ if __name__ == "__main__":
 
     # Call the function
     extract_frames_from_video(args.video_path, args.output_folder)
-    

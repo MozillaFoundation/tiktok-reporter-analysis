@@ -1,33 +1,35 @@
 import pandas as pd
-import numpy as np
-from transformers import IdeficsForVisionText2Text, AutoProcessor
 import torch
 from PIL import Image
+from transformers import AutoProcessor, IdeficsForVisionText2Text
 
 # Load the CSV file
-df = pd.read_csv('frame_classification_data.csv')
+df = pd.read_csv("frame_classification_data.csv")
 
 # Initialize a state variable to keep track of whether we are in a scrolling state
 scrolling_state = False
 # Create a new column 'video' and initialize it with zeros
-df['video'] = 0
+df["video"] = 0
 # Initialize a video counter
 video_counter = 0
 
 # Iterate over the DataFrame rows
 for i, row in df.iterrows():
     # If the event is 'Scrolling', set the scrolling state to True
-    if row['event_name'] == 'Scrolling':
+    if row["event_name"] == "Scrolling":
         scrolling_state = True
     # If the event is 'TikTok video player' and we are in a scrolling state, increment the video counter
     # and set the scrolling state to False
-    elif row['event_name'] == 'TikTok video player' and scrolling_state:
+    elif row["event_name"] == "TikTok video player" and scrolling_state:
         video_counter += 1
         scrolling_state = False
     # Assign the video counter value to the 'video' column
-    df.at[i, 'video'] = video_counter
+    df.at[i, "video"] = video_counter
 # Create a dictionary where keys are video numbers and values are lists of all frames with a 'TikTok video player' classification
-video_frames = {i: list(df[(df['video'] == i) & (df['event_name'] == 'TikTok video player')].index) for i in range(0, video_counter + 1)}
+video_frames = {
+    i: list(df[(df["video"] == i) & (df["event_name"] == "TikTok video player")].index)
+    for i in range(0, video_counter + 1)
+}
 
 selected_frames = {}
 for video in video_frames.keys():
@@ -38,14 +40,13 @@ for video in video_frames.keys():
     one_third = min_frame + (max_frame - min_frame) // 3
     two_thirds = min_frame + 2 * (max_frame - min_frame) // 3
     # Find the frames that are closest to one third and two thirds of the way between min and max
-    selected_frames[video] = [min(frames, key=lambda x:abs(x-one_third)), min(frames, key=lambda x:abs(x-two_thirds))]
+    selected_frames[video] = [
+        min(frames, key=lambda x: abs(x - one_third)),
+        min(frames, key=lambda x: abs(x - two_thirds)),
+    ]
 
 
-
-
-
-
-SYSTEM_PROMPT = [ # From https://huggingface.co/spaces/HuggingFaceM4/idefics_playground/blob/main/app_dialogue.py
+SYSTEM_PROMPT = [  # From https://huggingface.co/spaces/HuggingFaceM4/idefics_playground/blob/main/app_dialogue.py
     """The following is a conversation between a highly knowledgeable and intelligent visual AI assistant, called Assistant, and a human user, called User. In the following interactions, User and Assistant will converse in natural language, and Assistant will do its best to answer User’s questions. Assistant has the ability to perceive images and reason about the content of visual inputs. Assistant was built to be respectful, polite and inclusive. It knows a lot, and always tells the truth. When prompted with an image, it does not make up facts.
 The conversation begins:""",
     """\nUser:""",
@@ -71,8 +72,6 @@ The conversation begins:""",
 ]
 
 
-
-
 use_mps = torch.backends.mps.is_available()
 print(f"MPS available: {use_mps}")
 
@@ -95,15 +94,15 @@ for video in selected_frames.keys():
 
 image1 = Image.open("frames/frame_0000.jpg")
 image2 = Image.open("frames/frame_0001.jpg")
-prompts =  [ #
-            SYSTEM_PROMPT +
-    [
+prompts = [  #
+    SYSTEM_PROMPT
+    + [
         "\nUser:",
         image1,
         image2,
         "These are a few screenshots from a tiktok video.  As these are just a few screenshots, please do not assume that the video is, for example, a collage.  Please tell me in a few words each what the topic and style of the video might be.",
         "<end_of_utterance>",
-        "\nAssistant:"
+        "\nAssistant:",
     ],
 ]
 
@@ -118,7 +117,6 @@ bad_words_ids = processor.tokenizer(["<image>", "<fake_token_around_image>"], ad
 
 generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_ids=bad_words_ids, max_length=1500)
 generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
-
 
 
 for i, t in enumerate(generated_text):
