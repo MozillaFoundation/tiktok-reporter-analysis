@@ -13,3 +13,9 @@ Setup dev environment
 pip install -r requirements-dev.txt
 pre-commit install
 ```
+
+Run in docker
+```
+docker build -t tiktok-reporter-analysis
+docker run --rm -it --gpus all -v ${PWD}:/app tiktok-reporter-analysis PYTHON CMD HERE
+```
