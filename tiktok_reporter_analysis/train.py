@@ -152,6 +152,8 @@ def train(train_dir, labels_file, checkpoint_dir):
         # Save the model checkpoint if it has the best test loss so far
         if test_loss < best_test_loss:
             best_test_loss = test_loss
+            if not os.path.exists(checkpoint_dir):
+                os.makedirs(checkpoint_dir)
             torch.save(model.state_dict(), os.path.join(checkpoint_dir, "best_model.pth"))
             print(f"New best model saved to {checkpoint_dir}")
 
