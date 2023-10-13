@@ -166,5 +166,7 @@ if __name__ == "__main__":
         # Save the model checkpoint if it has the best test loss so far
         if test_loss < best_test_loss:
             best_test_loss = test_loss
+            if not os.path.exists(args.checkpoint_dir):
+                os.makedirs(args.checkpoint_dir)
             torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "best_model.pth"))
             print(f"New best model saved to {args.checkpoint_dir}")
