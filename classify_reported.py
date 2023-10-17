@@ -4,6 +4,7 @@ from moviepy.editor import VideoFileClip
 import whisper
 from pydub import AudioSegment
 import numpy as np
+import torch
 
 def extract_frames(video_path, num_frames=2):
     clip = VideoFileClip(video_path)
@@ -26,24 +27,23 @@ def pydub_to_np(audio):
     return np.array(audio.get_array_of_samples(), dtype=np.float32).reshape((-1, audio.channels)) / (
             1 << (8 * audio.sample_width - 1)), audio.frame_rate
 
-def extract_transcript(video_path):
+def extract_transcript(audio_path):
     whisper_model = whisper.load_model("base")
-    audio_segment = AudioSegment.from_file(video_path)
-    audio_array = pydub_to_np(audio_segment)[0]
-    print(video_path)
-    transcript = whisper_model.transcribe(audio_array)
+    print(whisper_model.device)
+    transcript = whisper_model.transcribe(audio_path)
     return transcript
 
 def main():
     parser = argparse.ArgumentParser(description='Extract transcript and frames from a video.')
     parser.add_argument('video_path', type=str, help='Path to the video file')
+    parser.add_argument('audio_path', type=str, help='Path to the audio track')
 
     args = parser.parse_args()
 
     transcript = extract_transcript(args.video_path)
     frames = extract_frames(args.video_path)
 
-    print(transcript)
+    print(transcript['text'])
 
 if __name__ == "__main__":
     main()
