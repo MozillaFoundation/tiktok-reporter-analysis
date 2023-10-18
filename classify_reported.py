@@ -2,7 +2,6 @@ import argparse
 import random
 from moviepy.editor import VideoFileClip
 import whisper
-from pydub import AudioSegment
 import numpy as np
 import torch
 
