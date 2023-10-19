@@ -86,8 +86,11 @@ else:
 print(f"Using device: {device}")
 
 checkpoint = "HuggingFaceM4/idefics-9b-instruct"
-model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, cache_dir=".cache").to(device)
-processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=".cache")
+cache_dir = ".cache"
+model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, cache_dir=cache_dir).to(
+    device
+)
+processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 
 
 prompts = []
