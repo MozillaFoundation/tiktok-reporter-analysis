@@ -86,25 +86,31 @@ else:
 print(f"Using device: {device}")
 
 checkpoint = "HuggingFaceM4/idefics-9b-instruct"
-model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.float16).to(device)
-processor = AutoProcessor.from_pretrained(checkpoint)
+model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, cache_dir=".cache").to(device)
+processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=".cache")
 
+
+prompts = []
 for video in selected_frames.keys():
-    print(f"analyzing video {video}...")
+    PROMPT = """
+    These are a few frames from a tiktok video. Write a one paragraph description of the video.
+    """
 
-image1 = Image.open("frames/frame_0000.jpg")
-image2 = Image.open("frames/frame_0001.jpg")
-prompts = [  #
-    SYSTEM_PROMPT
-    + [
-        "\nUser:",
-        image1,
-        image2,
-        "These are a few screenshots from a tiktok video.  As these are just a few screenshots, please do not assume that the video is, for example, a collage.  Please tell me in a few words each what the topic and style of the video might be.",
-        "<end_of_utterance>",
-        "\nAssistant:",
-    ],
-]
+    current_frames = selected_frames[video]
+    image1 = Image.open(f"frames/frame_{current_frames[0]}.jpg")
+    image2 = Image.open(f"frames/frame_{current_frames[0]}.jpg")
+
+    prompts += [  #
+        SYSTEM_PROMPT
+        + [
+            "\nUser:",
+            image1,
+            image2,
+            PROMPT,
+            "<end_of_utterance>",
+            "\nAssistant:",
+        ],
+    ]
 
 # --batched mode
 inputs = processor(prompts, add_end_of_utterance_token=False, return_tensors="pt").to(device)
@@ -119,5 +125,12 @@ generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_
 generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
 
 
-for i, t in enumerate(generated_text):
-    print(f"{i}:\n{t}\n")
+responses = ["video,description"]
+for video in selected_frames.keys():
+    without_system_prompt = generated_text[video].split("\n")[16:]
+    generated_response = without_system_prompt[-1].split("Assistant: ")[-1]
+    responses += [f"{video},{generated_response}"]
+
+responses_str = "\n".join(responses)
+with open("./video_descriptions.csv", "w") as f:
+    f.write(responses_str)
