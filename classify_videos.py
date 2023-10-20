@@ -96,7 +96,7 @@ processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 prompts = []
 for video in selected_frames.keys():
     PROMPT = """
-    These are a few frames from a tiktok video. Write a one paragraph description of the video.
+    These are a two frames from a tiktok video. Write a one paragraph description of the video.
     """
 
     current_frames = selected_frames[video]
