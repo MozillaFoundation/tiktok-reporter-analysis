@@ -124,11 +124,13 @@ generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_
 generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
 
 
-responses = ["video,description"]
+responses = ["video,frame1,frame2,description"]
 for video in selected_frames.keys():
     without_system_prompt = generated_text[video].split("\n")[16:]
     generated_response = without_system_prompt[-1].split("Assistant: ")[-1]
-    responses += [f"{video},{generated_response}"]
+    row = [f"{video},{selected_frames[video][0]},{selected_frames[video][1]},{generated_response}"]
+    print(row)
+    responses += row
 
 responses_str = "\n".join(responses)
 with open("./video_descriptions.csv", "w") as f:
