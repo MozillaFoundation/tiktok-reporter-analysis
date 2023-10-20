@@ -1,7 +1,7 @@
-training_data/screen_recordings/*.mp4
-frames/*
+data/training_data/screen_recordings/*.mp4
+data/frames/*
 .DS_Store
-checkpoints/*
+data/checkpoints/*
 *.csv
 .cache
 __pycache__
