@@ -7,7 +7,7 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 
-from common import set_backend
+from .common import set_backend
 
 
 def load_checkpoint(checkpoint_path, device):
@@ -48,22 +48,13 @@ def predict(image_path, model, device):
     return predicted.item()
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Analyze images in a directory")
-    parser.add_argument("image_dir", type=str, help="Directory of images to analyze")
-    parser.add_argument("checkpoint_path", type=str, help="Path to model checkpoint")
-    args = parser.parse_args()
-
+def analyze_screen_recording(image_dir, checkpoint_path, results_path):
     image_files = sorted(
-        [
-            os.path.join(args.image_dir, f)
-            for f in os.listdir(args.image_dir)
-            if os.path.isfile(os.path.join(args.image_dir, f))
-        ]
+        [os.path.join(image_dir, f) for f in os.listdir(image_dir) if os.path.isfile(os.path.join(image_dir, f))]
     )
 
     device = set_backend()
-    model = load_checkpoint(args.checkpoint_path, device)
+    model = load_checkpoint(checkpoint_path, device)
 
     predictions = []
     for image_path in image_files:
@@ -109,12 +100,18 @@ def main():
     result_df = change_df[["index", "event_name"]].rename(columns={"index": "frame"})
 
     # Save the DataFrame to a CSV file
-    result_df.to_csv("frame_event_data.csv", index=False)
+    result_df.to_csv(results_path + "/frame_event_data.csv", index=False)
     raw_predictions["event_name"] = raw_predictions["classification"].map(event_names)
     raw_predictions.reset_index().rename(columns={"index": "frame"}).to_csv(
-        "frame_classification_data.csv", index=False
+        results_path + "/frame_classification_data.csv", index=False
     )
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Analyze images in a directory")
+    parser.add_argument("image_dir", type=str, help="Directory of images to analyze")
+    parser.add_argument("checkpoint_path", type=str, help="Path to model checkpoint")
+    parser.add_argument("results_path", type=str, help="Path to results directory")
+    args = parser.parse_args()
+
+    analyze_screen_recording(args.image_dir, args.checkpoint_path)
