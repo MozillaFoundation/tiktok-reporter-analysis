@@ -7,7 +7,8 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from common import set_backend
+from .common import set_backend
+from .extract_frames import extract_frames_from_video
 
 
 def generate_label_list(transitions):
@@ -89,24 +90,19 @@ def evaluate(model, test_loader, criterion, device):
     return running_loss / len(test_loader), 100.0 * correct / total
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Train the model with specified directory of training data and labels text file."
-    )
-    parser.add_argument("train_dir", type=str, help="Directory of training data")
-    parser.add_argument("labels_file", type=str, help="File of labels")
-    parser.add_argument("checkpoint_dir", type=str, help="Directory to save the best model checkpoint")
-    args = parser.parse_args()
-
+def train(train_dir, labels_file, checkpoint_dir):
     # Load paths and labels
-    image_folder = args.train_dir
+    image_folder = train_dir
     labels = []
 
-    with open(args.labels_file, "r") as f:
+    with open(labels_file, "r") as f:
         data = json.load(f)
         labels = generate_label_list(data[0]["events"])  # TEMP HACK
+
+    screen_recordings_dir = os.path.join(os.path.dirname(labels_file), "screen_recordings")
+    video_path = os.path.join(screen_recordings_dir, data[0]["filename"])
+    print(video_path)
+    extract_frames_from_video(video_path, image_folder)
 
     image_files = [
         os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))
@@ -129,7 +125,7 @@ if __name__ == "__main__":
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-    full_loader = DataLoader(full_dataset, batch_size=32, shuffle=False)
+    # full_loader = DataLoader(full_dataset, batch_size=32, shuffle=False)
 
     model = timm.create_model("vit_tiny_patch16_224", pretrained=True, num_classes=7)
     device = set_backend()
@@ -156,5 +152,19 @@ if __name__ == "__main__":
         # Save the model checkpoint if it has the best test loss so far
         if test_loss < best_test_loss:
             best_test_loss = test_loss
-            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "best_model.pth"))
-            print(f"New best model saved to {args.checkpoint_dir}")
+            torch.save(model.state_dict(), os.path.join(checkpoint_dir, "best_model.pth"))
+            print(f"New best model saved to {checkpoint_dir}")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Train the model with specified directory of training data and labels text file."
+    )
+    parser.add_argument("train_dir", type=str, help="Directory of training data")
+    parser.add_argument("labels_file", type=str, help="File of labels")
+    parser.add_argument("checkpoint_dir", type=str, help="Directory to save the best model checkpoint")
+    args = parser.parse_args()
+
+    train(args.train_dir, args.labels_file, args.checkpoint_dir)
