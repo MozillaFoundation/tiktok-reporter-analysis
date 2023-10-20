@@ -92,7 +92,7 @@ model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.
 )
 processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 
-PROMPT = """These are a two frames from a tiktok video. Write a one paragraph description of the video."""
+PROMPT = """These are a two frames from a tiktok video. Write a one paragraph description of the video based on the two frames. Don't talk about the frames separately but infer what is happening in the whole video based on the frames."""
 prompts = []
 for video in selected_frames.keys():
     current_frames = selected_frames[video]
