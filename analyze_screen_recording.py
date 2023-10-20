@@ -19,10 +19,26 @@ def set_backend():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+    print(f"Using device: {device}")
     return device
 
 
-def load_checkpoint_and_predict(image_path, checkpoint_path, device):
+def load_checkpoint(checkpoint_path, device):
+    # Load the model
+    model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=7)
+
+    # Load the checkpoint
+    model.load_state_dict(torch.load(checkpoint_path))
+
+    model = model.to(device)
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    return model
+
+
+def predict(image_path, model, device):
     # Define the same transform as used in training
     transform = transforms.Compose(
         [
@@ -35,19 +51,7 @@ def load_checkpoint_and_predict(image_path, checkpoint_path, device):
     image = Image.open(image_path).convert("RGB")
     image = transform(image)
     image = image.unsqueeze(0)  # Add batch dimension
-
-    # Load the model
-    model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=7)
-
-    # Load the checkpoint
-    model.load_state_dict(torch.load(checkpoint_path))
-
-    print(f"Using device: {device}")
-    model = model.to(device)
     image = image.to(device)
-
-    # Set the model to evaluation mode
-    model.eval()
 
     # Make a prediction
     with torch.no_grad():
@@ -72,10 +76,11 @@ def main():
     )
 
     device = set_backend()
+    model = load_checkpoint(args.checkpoint_path, device)
 
     predictions = []
     for image_path in image_files:
-        prediction = load_checkpoint_and_predict(image_path, args.checkpoint_path, device)
+        prediction = predict(image_path, model, device)
         predictions.append((image_path, prediction))
 
     event_names = {
