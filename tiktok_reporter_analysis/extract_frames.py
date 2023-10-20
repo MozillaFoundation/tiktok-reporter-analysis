@@ -1,12 +1,18 @@
 import os
+import shutil
 
 import cv2
 
 
 def extract_frames_from_video(video_path, output_folder):
-    # Ensure output directory exists
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    # Ensure output directory exists and is empty
+    if os.path.exists(output_folder):
+        confirm = input(f"Output directory {output_folder} already exists. Remove it? (y/n) ")
+        if confirm.lower() == "y":
+            shutil.rmtree(output_folder)
+        else:
+            exit(1)
+    os.makedirs(output_folder, exist_ok=True)
 
     # Open the video file
     cap = cv2.VideoCapture(video_path)
