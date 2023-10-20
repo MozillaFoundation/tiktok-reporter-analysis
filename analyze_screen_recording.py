@@ -8,7 +8,21 @@ import torchvision.transforms as transforms
 from PIL import Image
 
 
-def load_checkpoint_and_predict(image_path, checkpoint_path):
+def set_backend():
+    use_mps = torch.backends.mps.is_available()
+    print(f"MPS available: {use_mps}")
+
+    # If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
+    if use_mps:
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    return device
+
+
+def load_checkpoint_and_predict(image_path, checkpoint_path, device):
     # Define the same transform as used in training
     transform = transforms.Compose(
         [
@@ -27,17 +41,6 @@ def load_checkpoint_and_predict(image_path, checkpoint_path):
 
     # Load the checkpoint
     model.load_state_dict(torch.load(checkpoint_path))
-
-    use_mps = torch.backends.mps.is_available()
-    print(f"MPS available: {use_mps}")
-
-    # If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
-    if use_mps:
-        device = torch.device("mps")
-    elif torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
 
     print(f"Using device: {device}")
     model = model.to(device)
@@ -68,9 +71,11 @@ def main():
         ]
     )
 
+    device = set_backend()
+
     predictions = []
     for image_path in image_files:
-        prediction = load_checkpoint_and_predict(image_path, args.checkpoint_path)
+        prediction = load_checkpoint_and_predict(image_path, args.checkpoint_path, device)
         predictions.append((image_path, prediction))
 
     event_names = {
