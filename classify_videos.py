@@ -101,9 +101,9 @@ for video in selected_frames.keys():
 
     current_frames = selected_frames[video]
     image1 = Image.open(f"frames/frame_{current_frames[0]}.jpg")
-    image2 = Image.open(f"frames/frame_{current_frames[0]}.jpg")
+    image2 = Image.open(f"frames/frame_{current_frames[1]}.jpg")
 
-    prompts += [  #
+    prompts += [
         SYSTEM_PROMPT
         + [
             "\nUser:",
