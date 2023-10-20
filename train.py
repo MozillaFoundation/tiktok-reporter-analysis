@@ -7,6 +7,8 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 
+from common import set_backend
+
 
 def generate_label_list(transitions):
     # Convert keys to integers and find the max key to determine the size of the list
@@ -130,19 +132,7 @@ if __name__ == "__main__":
     full_loader = DataLoader(full_dataset, batch_size=32, shuffle=False)
 
     model = timm.create_model("vit_tiny_patch16_224", pretrained=True, num_classes=7)
-    # Check if MPS (Multi-Process Service) is available
-    use_mps = torch.backends.mps.is_available()
-    print(f"MPS available: {use_mps}")
-
-    # If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
-    if use_mps:
-        device = torch.device("mps")
-    elif torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-
-    print(f"Using device: {device}")
+    device = set_backend()
     model.to(device)
 
     criterion = torch.nn.CrossEntropyLoss()

@@ -3,6 +3,8 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, IdeficsForVisionText2Text
 
+from common import set_backend
+
 # Load the CSV file
 df = pd.read_csv("frame_classification_data.csv")
 
@@ -72,18 +74,7 @@ The conversation begins:""",
 ]
 
 
-use_mps = torch.backends.mps.is_available()
-print(f"MPS available: {use_mps}")
-
-# If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
-if use_mps:
-    device = torch.device("mps")
-elif torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
-
-print(f"Using device: {device}")
+device = set_backend()
 
 checkpoint = "HuggingFaceM4/idefics-9b-instruct"
 cache_dir = ".cache"
