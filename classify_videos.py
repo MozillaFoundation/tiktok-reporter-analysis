@@ -92,13 +92,9 @@ model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.
 )
 processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 
-
+PROMPT = """These are a two frames from a tiktok video. Write a one paragraph description of the video."""
 prompts = []
 for video in selected_frames.keys():
-    PROMPT = """
-    These are a two frames from a tiktok video. Write a one paragraph description of the video.
-    """
-
     current_frames = selected_frames[video]
     image1 = Image.open(f"frames/frame_{current_frames[0]}.jpg")
     image2 = Image.open(f"frames/frame_{current_frames[1]}.jpg")
