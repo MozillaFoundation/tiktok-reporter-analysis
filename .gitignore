@@ -4,3 +4,4 @@ frames/*
 checkpoints/*
 *.csv
 .cache
+__pycache__
