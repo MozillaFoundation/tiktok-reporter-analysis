@@ -3,3 +3,4 @@ frames/*
 .DS_Store
 checkpoints/*
 *.csv
+.cache
