@@ -1,5 +1,4 @@
 [flake8]
 max-line-length = 120
 per-file-ignores =
-     common.py: E501
      classify_reported.py: E501
