@@ -2,3 +2,4 @@
 max-line-length = 120
 per-file-ignores =
      classify_videos.py: E501
+     classify_reported.py: E501

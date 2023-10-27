@@ -1,10 +1,12 @@
 import argparse
 import random
-from moviepy.editor import VideoFileClip
-import whisper
+
 import numpy as np
 import torch
+import whisper
+from moviepy.editor import VideoFileClip
 from transformers import AutoProcessor, IdeficsForVisionText2Text
+
 
 def extract_frames(video_path, num_frames=2):
     clip = VideoFileClip(video_path)
@@ -21,11 +23,15 @@ def extract_frames(video_path, num_frames=2):
 def pydub_to_np(audio):
     """
     Converts pydub audio segment into np.float32 of shape [duration_in_seconds*sample_rate, channels],
-    where each value is in range [-1.0, 1.0]. 
+    where each value is in range [-1.0, 1.0].
     Returns tuple (audio_np_array, sample_rate).
     """
-    return np.array(audio.get_array_of_samples(), dtype=np.float32).reshape((-1, audio.channels)) / (
-            1 << (8 * audio.sample_width - 1)), audio.frame_rate
+    return (
+        np.array(audio.get_array_of_samples(), dtype=np.float32).reshape((-1, audio.channels))
+        / (1 << (8 * audio.sample_width - 1)),
+        audio.frame_rate,
+    )
+
 
 def extract_transcript(audio_path):
     whisper_model = whisper.load_model("base")
@@ -33,17 +39,18 @@ def extract_transcript(audio_path):
     transcript = whisper_model.transcribe(audio_path)
     return transcript
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Extract transcript and frames from a video.')
-    parser.add_argument('video_path', type=str, help='Path to the video file')
-    parser.add_argument('audio_path', type=str, help='Path to the audio track')
+    parser = argparse.ArgumentParser(description="Extract transcript and frames from a video.")
+    parser.add_argument("video_path", type=str, help="Path to the video file")
+    parser.add_argument("audio_path", type=str, help="Path to the audio track")
 
     args = parser.parse_args()
 
     transcript = extract_transcript(args.video_path)
     frames = extract_frames(args.video_path)
 
-    print(transcript['text'])
+    print(transcript["text"])
 
     SYSTEM_PROMPT = [  # From https://huggingface.co/spaces/HuggingFaceM4/idefics_playground/blob/main/app_dialogue.py
         """The following is a conversation between a highly knowledgeable and intelligent visual AI assistant, called Assistant, and a human user, called User. In the following interactions, User and Assistant will converse in natural language, and Assistant will do its best to answer User’s questions. Assistant has the ability to perceive images and reason about the content of visual inputs. Assistant was built to be respectful, polite and inclusive. It knows a lot, and always tells the truth. When prompted with an image, it does not make up facts.
@@ -70,7 +77,6 @@ def main():
         """\nAssistant: There is no dogs in this image. The picture shows a tennis player jumping to volley the ball.<end_of_utterance>""",
     ]
 
-
     use_mps = torch.backends.mps.is_available()
     print(f"MPS available: {use_mps}")
 
@@ -87,7 +93,6 @@ def main():
     checkpoint = "HuggingFaceM4/idefics-9b-instruct"
     model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.float16).to(device)
     processor = AutoProcessor.from_pretrained(checkpoint)
-
 
     image1 = frames[0]
     image2 = frames[1]
@@ -116,9 +121,9 @@ def main():
     generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_ids=bad_words_ids, max_length=1500)
     generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
 
-
     for i, t in enumerate(generated_text):
         print(f"{i}:\n{t}\n")
+
 
 if __name__ == "__main__":
     main()
