@@ -24,6 +24,8 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
 
     with open("./tiktok_reporter_analysis/prompts/idefics_prompt.txt", "r") as f:
         PROMPT = f.read()[:-1]
+    if transcript:
+        PROMPT += "\n" + transcript["text"]
 
     device = set_backend()
 
