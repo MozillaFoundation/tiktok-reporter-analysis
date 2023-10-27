@@ -27,6 +27,9 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     if transcript:
         PROMPT += "\n" + transcript["text"]
 
+    print("Prompt:")
+    print(PROMPT)
+
     device = set_backend()
 
     if testing:

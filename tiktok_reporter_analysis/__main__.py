@@ -7,9 +7,9 @@ from .extract_frames import extract_frames_from_video
 from .train import train
 
 
-def analyze(video_path, frames_folder, checkpoint_path, results_path, testing, audio_path=None):
-    if audio_path:
-        classify_reported(video_path, audio_path, results_path, testing)
+def analyze(video_path, frames_folder, checkpoint_path, results_path, testing, transcribe):
+    if transcribe:
+        classify_reported(video_path, results_path, testing)
     else:
         # extract frames from videos
         extract_frames_from_video(video_path, frames_folder)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     )
     analyze_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     analyze_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
-    analyze_parser.add_argument("--audio_path", help="path to the audio file")
+    analyze_parser.add_argument("--transcribe", help="transcribe audio and include in analysis", action="store_true")
 
     args = parser.parse_args()
 
@@ -51,5 +51,5 @@ if __name__ == "__main__":
         train(args.train_dir, args.labels_file, args.checkpoint_dir)
     elif args.command == "analyze":
         analyze(
-            args.video_path, args.frames_folder, args.checkpoint_path, args.results_path, args.testing, args.audio_path
+            args.video_path, args.frames_folder, args.checkpoint_path, args.results_path, args.testing, args.transcribe
         )

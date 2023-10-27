@@ -1,7 +1,7 @@
 import argparse
 import random
+from tempfile import NamedTemporaryFile
 
-import numpy as np
 import whisper
 from moviepy.editor import VideoFileClip
 from PIL import Image
@@ -9,8 +9,10 @@ from PIL import Image
 from .common import multi_modal_analysis
 
 
-def extract_frames(video_path, num_frames=2):
+def extract_frames_n_audio(video_path, audio_path, num_frames=2):
     clip = VideoFileClip(video_path)
+    audio = clip.audio
+    audio.write_audiofile(audio_path)
     duration = clip.duration
     frames = {}
 
@@ -21,19 +23,6 @@ def extract_frames(video_path, num_frames=2):
     return frames
 
 
-def pydub_to_np(audio):
-    """
-    Converts pydub audio segment into np.float32 of shape [duration_in_seconds*sample_rate, channels],
-    where each value is in range [-1.0, 1.0].
-    Returns tuple (audio_np_array, sample_rate).
-    """
-    return (
-        np.array(audio.get_array_of_samples(), dtype=np.float32).reshape((-1, audio.channels))
-        / (1 << (8 * audio.sample_width - 1)),
-        audio.frame_rate,
-    )
-
-
 def extract_transcript(audio_path):
     whisper_model = whisper.load_model("base")
     print(whisper_model.device)
@@ -41,9 +30,10 @@ def extract_transcript(audio_path):
     return transcript
 
 
-def classify_reported(video_path, audio_path, results_path, testing=False):
-    transcript = extract_transcript(audio_path)
-    frames = extract_frames(video_path)
+def classify_reported(video_path, results_path, testing=False):
+    with NamedTemporaryFile(suffix=".wav") as tmpfile:
+        frames = extract_frames_n_audio(video_path, tmpfile.name)
+        transcript = extract_transcript(tmpfile.name)
 
     print(transcript["text"])
 
