@@ -17,7 +17,7 @@ def set_backend():
     return device
 
 
-def multi_modal_analysis(frames, results_path, transcript=None):
+def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()
     SYSTEM_PROMPT[-1] = SYSTEM_PROMPT[-1][:-1]  # Remove EOF newline
@@ -27,7 +27,10 @@ def multi_modal_analysis(frames, results_path, transcript=None):
 
     device = set_backend()
 
-    checkpoint = "HuggingFaceM4/idefics-9b-instruct"
+    if testing:
+        checkpoint = "HuggingFaceM4/tiny-random-idefics"
+    else:
+        checkpoint = "HuggingFaceM4/idefics-9b-instruct"
     cache_dir = ".cache"
     model = IdeficsForVisionText2Text.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, cache_dir=cache_dir).to(
         device

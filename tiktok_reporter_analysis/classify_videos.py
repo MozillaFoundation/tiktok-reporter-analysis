@@ -4,7 +4,7 @@ from PIL import Image
 from .common import multi_modal_analysis
 
 
-def classify_videos(frames_folder, results_path):
+def classify_videos(frames_folder, results_path, testing=False):
     # Load the CSV file
     df = pd.read_csv(results_path + "/frame_classification_data.csv")
 
@@ -46,7 +46,7 @@ def classify_videos(frames_folder, results_path):
         current_frames = [min(frames, key=lambda x: abs(x - one_third)), min(frames, key=lambda x: abs(x - two_thirds))]
         selected_frames[video] = {frame: Image.open(frames_folder + f"/frame_{frame}.jpg") for frame in current_frames}
 
-    multi_modal_analysis(selected_frames, results_path)
+    multi_modal_analysis(selected_frames, results_path, testing=testing)
 
 
 if __name__ == "__main__":
