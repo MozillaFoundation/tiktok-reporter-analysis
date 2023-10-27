@@ -1,5 +1,4 @@
 import torch
-from PIL import Image
 from transformers import AutoProcessor, IdeficsForVisionText2Text
 
 
@@ -18,7 +17,7 @@ def set_backend():
     return device
 
 
-def multi_modal_analysis(selected_frames, frames_folder, results_path):
+def multi_modal_analysis(frames, results_path, transcript=None):
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()
     SYSTEM_PROMPT[-1] = SYSTEM_PROMPT[-1][:-1]  # Remove EOF newline
@@ -36,10 +35,10 @@ def multi_modal_analysis(selected_frames, frames_folder, results_path):
     processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 
     prompts = []
-    for video in selected_frames.keys():
-        current_frames = selected_frames[video]
-        image1 = Image.open(f"{frames_folder}/frame_{current_frames[0]:04}.jpg")
-        image2 = Image.open(f"{frames_folder}/frame_{current_frames[1]:04}.jpg")
+    for video in frames.keys():
+        current_frames = list(frames[video].keys())
+        image1 = frames[video][current_frames[0]]
+        image2 = frames[video][current_frames[1]]
 
         prompts += [
             SYSTEM_PROMPT
@@ -66,10 +65,11 @@ def multi_modal_analysis(selected_frames, frames_folder, results_path):
     generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
 
     responses = ["video,frame1,frame2,description"]
-    for video in selected_frames.keys():
+    for video in frames.keys():
         without_system_prompt = generated_text[video].split("\n")[16:]
         generated_response = without_system_prompt[-1].split("Assistant: ")[-1]
-        row = [f"{video},{selected_frames[video][0]},{selected_frames[video][1]},{generated_response}"]
+        current_frames = list(frames[video].keys())
+        row = [f"{video},{current_frames[0]},{current_frames[1]},{generated_response}"]
         print(row)
         responses += row
 
