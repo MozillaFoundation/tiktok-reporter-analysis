@@ -6,10 +6,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Train
-python -m tiktok-reporter-analysis train.py
+python -m tiktok_reporter_analysis train
 
-# Run analysis
-python -m tiktok-reporter-analysis data/training_data/screen_recordings/RecordIt-1693292574.mp4
+# Run analysis for screen recording
+python -m tiktok_reporter_analysis analyze_screen_recording data/training_data/screen_recordings/RecordIt-1693292574.mp4
+
+# Run analaysis for reported
+python -m tiktok_reporter_analysis analyze_reported data/training_data/screen_recordings/exampletiktok.mp4
 ```
 Setup dev environment
 
