@@ -136,6 +136,8 @@ def train(train_dir, labels_file, checkpoint_dir):
 
     n_epochs = 10
     best_test_loss = float("inf")
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
     for epoch in range(n_epochs):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         test_loss, test_acc = evaluate(model, test_loader, criterion, device)
@@ -152,8 +154,6 @@ def train(train_dir, labels_file, checkpoint_dir):
         # Save the model checkpoint if it has the best test loss so far
         if test_loss < best_test_loss:
             best_test_loss = test_loss
-            if not os.path.exists(checkpoint_dir):
-                os.makedirs(checkpoint_dir)
             torch.save(model.state_dict(), os.path.join(checkpoint_dir, "best_model.pth"))
             print(f"New best model saved to {checkpoint_dir}")
 
