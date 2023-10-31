@@ -1,7 +1,7 @@
 import pandas as pd
 from PIL import Image
 
-from .common import multi_modal_analysis
+from .common import extract_frames, multi_modal_analysis
 
 
 def classify_videos(frames_folder, results_path, testing=False):
@@ -37,13 +37,7 @@ def classify_videos(frames_folder, results_path, testing=False):
     selected_frames = {}
     for video in video_frames.keys():
         frames = video_frames[video]
-        min_frame = min(frames)
-        max_frame = max(frames)
-        # Calculate one third and two thirds of the way between min and max
-        one_third = min_frame + (max_frame - min_frame) // 3
-        two_thirds = min_frame + 2 * (max_frame - min_frame) // 3
-        # Find the frames that are closest to one third and two thirds of the way between min and max
-        current_frames = [min(frames, key=lambda x: abs(x - one_third)), min(frames, key=lambda x: abs(x - two_thirds))]
+        current_frames = extract_frames(frames)
         selected_frames[video] = {frame: Image.open(frames_folder + f"/frame_{frame}.jpg") for frame in current_frames}
 
     multi_modal_analysis(selected_frames, results_path, testing=testing)

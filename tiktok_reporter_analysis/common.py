@@ -17,6 +17,17 @@ def set_backend():
     return device
 
 
+def extract_frames(frames):
+    min_frame = min(frames)
+    max_frame = max(frames)
+    # Calculate one third and two thirds of the way between min and max
+    one_third = min_frame + (max_frame - min_frame) // 3
+    two_thirds = min_frame + 2 * (max_frame - min_frame) // 3
+    # Find the frames that are closest to one third and two thirds of the way between min and max
+    current_frames = [min(frames, key=lambda x: abs(x - one_third)), min(frames, key=lambda x: abs(x - two_thirds))]
+    return current_frames
+
+
 def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()

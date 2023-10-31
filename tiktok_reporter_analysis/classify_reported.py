@@ -1,24 +1,26 @@
 import argparse
-import random
 from tempfile import NamedTemporaryFile
 
+import numpy as np
 import whisper
 from moviepy.editor import VideoFileClip
 from PIL import Image
 
-from .common import multi_modal_analysis
+from .common import extract_frames, multi_modal_analysis
 
 
 def extract_frames_n_audio(video_path, audio_path, num_frames=2):
     clip = VideoFileClip(video_path)
     audio = clip.audio
     audio.write_audiofile(audio_path)
-    duration = clip.duration
-    frames = {}
 
-    for i in range(num_frames):
-        time = random.uniform(0, duration)
-        frames[i] = Image.fromarray(clip.get_frame(time))
+    n_frames_in_video = int(clip.fps * clip.duration)
+    frame_timestamps = np.linspace(0, clip.duration, n_frames_in_video)
+    selected_frames = extract_frames(frame_timestamps)
+
+    frames = {
+        np.where(frame_timestamps == time)[0][0]: Image.fromarray(clip.get_frame(time)) for time in selected_frames
+    }
 
     return frames
 
