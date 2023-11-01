@@ -88,7 +88,7 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
         without_system_prompt = generated_text[video].split("\n")[16:]
         generated_response = without_system_prompt[-1].split("Assistant: ")[-1]
         current_frames = list(frames[video].keys())
-        row = [f"{video},{current_frames[0]},{current_frames[1]},{generated_response}"]
+        row = [f"{video},{current_frames[0]},{current_frames[1]},\"{generated_response}\""]
         print(row)
         responses += row
 
