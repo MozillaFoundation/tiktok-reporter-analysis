@@ -1,7 +1,8 @@
+import os
+
+import pandas as pd
 import torch
 from transformers import AutoProcessor, IdeficsForVisionText2Text
-import pandas as pd
-import os
 
 
 def set_backend():
@@ -85,11 +86,15 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_ids=bad_words_ids, max_length=1500)
     generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
 
-    output_df = pd.DataFrame({
-        "video": [video for video in frames.keys()],
-        "frame1": [list(frames[video].keys())[0] for video in frames.keys()],
-        "frame2": [list(frames[video].keys())[1] for video in frames.keys()],
-        "description": [generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in frames.keys()]
-    })
+    output_df = pd.DataFrame(
+        {
+            "video": [video for video in frames.keys()],
+            "frame1": [list(frames[video].keys())[0] for video in frames.keys()],
+            "frame2": [list(frames[video].keys())[1] for video in frames.keys()],
+            "description": [
+                generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in frames.keys()
+            ],
+        }
+    )
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")
