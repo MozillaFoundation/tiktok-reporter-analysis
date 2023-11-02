@@ -1,6 +1,7 @@
 data/training_data/screen_recordings/*.mp4
 data/training_data/reported_videos/*.mp?
 data/frames/*
+data/results/*
 .DS_Store
 data/checkpoints/*
 *.csv
