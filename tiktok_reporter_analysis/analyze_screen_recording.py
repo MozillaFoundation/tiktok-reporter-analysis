@@ -15,7 +15,7 @@ def load_checkpoint(checkpoint_path, device):
     model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=7)
 
     # Load the checkpoint
-    model.load_state_dict(torch.load(checkpoint_path))
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
 
     model = model.to(device)
 
