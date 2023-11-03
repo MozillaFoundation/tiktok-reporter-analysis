@@ -12,6 +12,7 @@ def extract_frames_from_video(video_path, output_folder, results_path):
         if confirm.lower() == "y":
             shutil.rmtree(output_folder)
         else:
+            print("Aborting.")
             exit(1)
     os.makedirs(output_folder, exist_ok=True)
 
