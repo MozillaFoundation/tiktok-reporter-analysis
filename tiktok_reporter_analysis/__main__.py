@@ -9,7 +9,7 @@ from .train import train
 
 def analyze(video_path, frames_folder, checkpoint_path, results_path, testing):
     # extract frames from videos
-    extract_frames_from_video(video_path, frames_folder)
+    extract_frames_from_video(video_path, frames_folder, results_path)
 
     # analyze screen recordings
     analyze_screen_recording(frames_folder, checkpoint_path, results_path)

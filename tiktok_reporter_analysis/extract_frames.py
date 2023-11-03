@@ -2,9 +2,10 @@ import os
 import shutil
 
 import cv2
+import pandas as pd
 
 
-def extract_frames_from_video(video_path, output_folder):
+def extract_frames_from_video(video_path, output_folder, results_path):
     # Ensure output directory exists and is empty
     if os.path.exists(output_folder):
         confirm = input(f"Output directory {output_folder} already exists. Remove it? (y/n) ")
@@ -25,6 +26,7 @@ def extract_frames_from_video(video_path, output_folder):
     print(f"Total frames: {frame_count}")
 
     count = 0
+    frames_n_timestamps = []
     while True:
         ret, frame = cap.read()
 
@@ -33,6 +35,8 @@ def extract_frames_from_video(video_path, output_folder):
             break
 
         # Save the current frame as an image
+        timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
+        frames_n_timestamps.append({"frame": count, "timestamp": timestamp})
         frame_filename = os.path.join(output_folder, f"frame_{count:04}.jpg")
         cv2.imwrite(frame_filename, frame)
 
@@ -40,6 +44,7 @@ def extract_frames_from_video(video_path, output_folder):
         print(f"Extracted frame {count} of {frame_count}")
 
     cap.release()
+    pd.DataFrame(frames_n_timestamps).to_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index=False)
     print("Frames extraction completed.")
 
 
@@ -52,9 +57,10 @@ if __name__ == "__main__":
     # Add the arguments
     parser.add_argument("video_path", type=str, help="The path to the video file")
     parser.add_argument("output_folder", type=str, help="The path to the output folder")
+    parser.add_argument("results_path", help="path to the results folder")
 
     # Parse the arguments
     args = parser.parse_args()
 
     # Call the function
-    extract_frames_from_video(args.video_path, args.output_folder)
+    extract_frames_from_video(args.video_path, args.output_folder, args.results_path)
