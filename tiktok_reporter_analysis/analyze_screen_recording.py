@@ -7,7 +7,7 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 
-from .common import set_backend
+from tiktok_reporter_analysis.common import format_ms_timestamp, set_backend
 
 
 def load_checkpoint(checkpoint_path, device):
@@ -53,6 +53,8 @@ def analyze_screen_recording(image_dir, checkpoint_path, results_path):
         [os.path.join(image_dir, f) for f in os.listdir(image_dir) if os.path.isfile(os.path.join(image_dir, f))]
     )
 
+    frames_to_timestamps = pd.read_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index_col=0)["timestamp"]
+
     device = set_backend()
     model = load_checkpoint(checkpoint_path, device)
 
@@ -73,6 +75,8 @@ def analyze_screen_recording(image_dir, checkpoint_path, results_path):
 
     # Convert the list to a pandas DataFrame
     raw_predictions = pd.DataFrame({"classification": [pred[1] for pred in predictions]})
+    raw_predictions["timestamp"] = raw_predictions.index.map(frames_to_timestamps)
+    raw_predictions["timestamp"] = format_ms_timestamp(raw_predictions["timestamp"])
     df = raw_predictions.copy(deep=True)
     # Calculate the difference between consecutive rows
     df["change"] = df["classification"].diff()
@@ -97,14 +101,14 @@ def analyze_screen_recording(image_dir, checkpoint_path, results_path):
             change_df.loc[index, "event_name"] = change_df.loc[index - 1, "event_name"]
 
     # The resulting DataFrame
-    result_df = change_df[["index", "event_name"]].rename(columns={"index": "frame"})
+    result_df = change_df[["index", "timestamp", "event_name"]].rename(columns={"index": "frame"})
 
     # Save the DataFrame to a CSV file
     result_df.to_csv(results_path + "/frame_event_data.csv", index=False)
     raw_predictions["event_name"] = raw_predictions["classification"].map(event_names)
-    raw_predictions.reset_index().rename(columns={"index": "frame"}).to_csv(
-        results_path + "/frame_classification_data.csv", index=False
-    )
+    raw_predictions.reset_index().rename(columns={"index": "frame"})[
+        ["frame", "timestamp", "classification", "event_name"]
+    ].to_csv(results_path + "/frame_classification_data.csv", index=False)
 
 
 if __name__ == "__main__":

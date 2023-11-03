@@ -31,6 +31,10 @@ def extract_frames(frames):
     return current_frames
 
 
+def format_ms_timestamp(ms_timestamp_series):
+    return pd.to_datetime(ms_timestamp_series, unit="ms").dt.strftime("%M:%S.%f")
+
+
 def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()
