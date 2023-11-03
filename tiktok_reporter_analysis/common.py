@@ -48,6 +48,8 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     print("Prompt:")
     print(PROMPT)
 
+    frames_to_timestamps = pd.read_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index_col=0)["timestamp"]
+
     device = set_backend()
 
     if testing:
@@ -100,5 +102,8 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
             ],
         }
     )
+    output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
+    output_df["timestamp2"] = format_ms_timestamp(output_df["frame2"].map(frames_to_timestamps))
+    output_df = output_df[["video", "frame1", "timestamp1", "frame2", "timestamp2", "description"]]
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")

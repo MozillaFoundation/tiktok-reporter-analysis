@@ -7,8 +7,8 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from .common import set_backend
-from .extract_frames import extract_frames_from_video
+from tiktok_reporter_analysis.common import set_backend
+from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
 
 
 def generate_label_list(transitions):

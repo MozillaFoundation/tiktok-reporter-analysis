@@ -1,13 +1,12 @@
 import pandas as pd
 from PIL import Image
 
-from .common import extract_frames, multi_modal_analysis
+from tiktok_reporter_analysis.common import extract_frames, multi_modal_analysis
 
 
 def classify_videos(frames_folder, results_path, testing=False):
     # Load the CSV file
     df = pd.read_csv(results_path + "/frame_classification_data.csv")
-
     # Initialize a state variable to keep track of whether we are in a scrolling state
     scrolling_state = False
     # Create a new column 'video' and initialize it with zeros
