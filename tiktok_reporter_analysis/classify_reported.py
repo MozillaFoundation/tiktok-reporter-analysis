@@ -1,15 +1,17 @@
 import argparse
+import os
 from tempfile import NamedTemporaryFile
 
 import numpy as np
+import pandas as pd
 import whisper
 from moviepy.editor import VideoFileClip
 from PIL import Image
 
-from .common import extract_frames, multi_modal_analysis
+from tiktok_reporter_analysis.common import extract_frames, multi_modal_analysis
 
 
-def extract_frames_n_audio(video_path, audio_path, num_frames=2):
+def extract_frames_n_audio(video_path, audio_path, results_path, num_frames=2):
     clip = VideoFileClip(video_path)
     audio = clip.audio
     audio.write_audiofile(audio_path)
@@ -21,6 +23,13 @@ def extract_frames_n_audio(video_path, audio_path, num_frames=2):
     frames = {
         np.where(frame_timestamps == time)[0][0]: Image.fromarray(clip.get_frame(time)) for time in selected_frames
     }
+
+    # Create a pandas dataframe with frame number and timestamp
+    df = pd.DataFrame({"frame": list(frames.keys()), "timestamp": selected_frames})
+    df["timestamp"] = df["timestamp"] * 1000  # Convert to milliseconds
+
+    # Write the dataframe to a csv file
+    df.to_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index=False)
 
     return frames
 
@@ -34,7 +43,7 @@ def extract_transcript(audio_path):
 
 def classify_reported(video_path, results_path, testing=False):
     with NamedTemporaryFile(suffix=".wav") as tmpfile:
-        frames = extract_frames_n_audio(video_path, tmpfile.name)
+        frames = extract_frames_n_audio(video_path, tmpfile.name, results_path)
         transcript = extract_transcript(tmpfile.name)
 
     print(transcript["text"])
