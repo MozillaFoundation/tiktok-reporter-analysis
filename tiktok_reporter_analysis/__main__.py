@@ -4,6 +4,7 @@ from .analyze_screen_recording import analyze_screen_recording
 from .classify_reported import classify_reported
 from .classify_videos import classify_videos
 from .extract_frames import extract_frames_from_video
+from .render_output import generate_html_report
 from .train import train
 
 
@@ -47,6 +48,10 @@ if __name__ == "__main__":
     reported_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     reported_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
 
+    # create the parser for the "report" command
+    report_parser = subparsers.add_parser("report")
+    report_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
+
     args = parser.parse_args()
 
     if args.command == "train":
@@ -55,5 +60,7 @@ if __name__ == "__main__":
         analyze(args.video_path, args.frames_folder, args.checkpoint_path, args.results_path, args.testing)
     elif args.command == "analyze_reported":
         classify_reported(args.video_path, args.results_path, args.testing)
+    elif args.command == "report":
+        generate_html_report(args.results_path)
     else:
         print("Invalid command")
