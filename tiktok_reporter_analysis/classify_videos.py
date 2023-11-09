@@ -1,10 +1,18 @@
 import pandas as pd
 from PIL import Image
 
+from tiktok_reporter_analysis.analyze_screen_recording import analyze_screen_recording
 from tiktok_reporter_analysis.common import extract_frames, multi_modal_analysis
+from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
 
 
-def classify_videos(frames_folder, results_path, testing=False):
+def classify_videos(video_path, frames_folder, checkpoint_path, results_path, testing=False):
+    # extract frames from videos
+    extract_frames_from_video(video_path, frames_folder, results_path)
+
+    # analyze screen recordings
+    analyze_screen_recording(frames_folder, checkpoint_path, results_path)
+
     # Load the CSV file
     df = pd.read_csv(results_path + "/frame_classification_data.csv")
     # Initialize a state variable to keep track of whether we are in a scrolling state
@@ -26,6 +34,7 @@ def classify_videos(frames_folder, results_path, testing=False):
             scrolling_state = False
         # Assign the video counter value to the 'video' column
         df.at[i, "video"] = video_counter
+
     # Create a dictionary where keys are video numbers and values are lists of all frames
     # with a 'TikTok video player' classification
     video_frames = {
