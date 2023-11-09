@@ -1,17 +1,20 @@
 import pandas as pd
-from PIL import Image
+from moviepy.editor import VideoFileClip
 
 from tiktok_reporter_analysis.analyze_screen_recording import analyze_screen_recording
-from tiktok_reporter_analysis.common import multi_modal_analysis, select_frames
-from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
+from tiktok_reporter_analysis.common import (
+    extract_frames,
+    multi_modal_analysis,
+    select_frames,
+)
 
 
 def classify_videos(video_path, frames_folder, checkpoint_path, results_path, testing=False):
-    # extract frames from videos
-    extract_frames_from_video(video_path, frames_folder, results_path)
+    video_clip = VideoFileClip(video_path)
+    frames_dataframe = extract_frames(video_clip, all_frames=True)
 
     # analyze screen recordings
-    analyze_screen_recording(frames_folder, checkpoint_path, results_path)
+    analyze_screen_recording(frames_dataframe, checkpoint_path, results_path)
 
     # Load the CSV file
     df = pd.read_csv(results_path + "/frame_classification_data.csv")
@@ -42,13 +45,16 @@ def classify_videos(video_path, frames_folder, checkpoint_path, results_path, te
         for i in range(0, video_counter + 1)
     }
 
-    selected_frames = {}
+    frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
+
+    selected_frames = []
     for video in video_frames.keys():
         frames = video_frames[video]
         current_frames = select_frames(frames)
-        selected_frames[video] = {frame: Image.open(frames_folder + f"/frame_{frame}.jpg") for frame in current_frames}
+        selected_frames += current_frames
 
-    multi_modal_analysis(selected_frames, results_path, testing=testing)
+    selected_frames_dataframe = frames_dataframe.loc[selected_frames]
+    multi_modal_analysis(selected_frames_dataframe, results_path, testing=testing)
 
 
 if __name__ == "__main__":

@@ -145,8 +145,8 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     output_df = pd.DataFrame(
         {
             "video": [video for video in videos],
-            "frame1": [frames.loc[frames["video"] == video, "frame"][0] for video in videos],
-            "frame2": [frames.loc[frames["video"] == video, "frame"][1] for video in videos],
+            "frame1": [frames.loc[frames["video"] == video, "frame"].iloc[0] for video in videos],
+            "frame2": [frames.loc[frames["video"] == video, "frame"].iloc[1] for video in videos],
             "description": [generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in videos],
         }
     )

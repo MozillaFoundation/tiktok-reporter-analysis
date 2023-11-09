@@ -1,11 +1,9 @@
 import argparse
-import os
 
 import pandas as pd
 import timm
 import torch
 import torchvision.transforms as transforms
-from PIL import Image
 
 from tiktok_reporter_analysis.common import format_ms_timestamp, set_backend
 
@@ -25,7 +23,7 @@ def load_checkpoint(checkpoint_path, device):
     return model
 
 
-def predict(image_path, model, device):
+def predict(image, model, device):
     # Define the same transform as used in training
     transform = transforms.Compose(
         [
@@ -35,7 +33,7 @@ def predict(image_path, model, device):
     )
 
     # Load the image
-    image = Image.open(image_path).convert("RGB")
+    image = image.convert("RGB")
     image = transform(image)
     image = image.unsqueeze(0)  # Add batch dimension
     image = image.to(device)
@@ -48,20 +46,16 @@ def predict(image_path, model, device):
     return predicted.item()
 
 
-def analyze_screen_recording(image_dir, checkpoint_path, results_path):
-    image_files = sorted(
-        [os.path.join(image_dir, f) for f in os.listdir(image_dir) if os.path.isfile(os.path.join(image_dir, f))]
-    )
-
-    frames_to_timestamps = pd.read_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index_col=0)["timestamp"]
+def analyze_screen_recording(frames_dataframe, checkpoint_path, results_path):
+    frames_to_timestamps = frames_dataframe.set_index("frame")["timestamp"].to_dict()
 
     device = set_backend()
     model = load_checkpoint(checkpoint_path, device)
 
     predictions = []
-    for image_path in image_files:
-        prediction = predict(image_path, model, device)
-        predictions.append((image_path, prediction))
+    for _, row in frames_dataframe.iterrows():
+        prediction = predict(row["image"], model, device)
+        predictions.append((row["frame"], prediction))
 
     event_names = {
         0: "Not TikTok",
