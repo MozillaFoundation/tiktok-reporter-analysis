@@ -2,7 +2,7 @@ import pandas as pd
 from PIL import Image
 
 from tiktok_reporter_analysis.analyze_screen_recording import analyze_screen_recording
-from tiktok_reporter_analysis.common import extract_frames, multi_modal_analysis
+from tiktok_reporter_analysis.common import multi_modal_analysis, select_frames
 from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
 
 
@@ -45,7 +45,7 @@ def classify_videos(video_path, frames_folder, checkpoint_path, results_path, te
     selected_frames = {}
     for video in video_frames.keys():
         frames = video_frames[video]
-        current_frames = extract_frames(frames)
+        current_frames = select_frames(frames)
         selected_frames[video] = {frame: Image.open(frames_folder + f"/frame_{frame}.jpg") for frame in current_frames}
 
     multi_modal_analysis(selected_frames, results_path, testing=testing)

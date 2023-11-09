@@ -24,7 +24,7 @@ def set_backend():
     return device
 
 
-def extract_frames(frames):
+def select_frames(frames):
     min_frame = min(frames)
     max_frame = max(frames)
     # Calculate one third and two thirds of the way between min and max
@@ -46,7 +46,7 @@ def extract_frames_n_audio(video_path, audio_path, results_path, num_frames=2):
 
     n_frames_in_video = int(clip.fps * clip.duration)
     frame_timestamps = np.linspace(0, clip.duration, n_frames_in_video)
-    selected_frame_timestamps = extract_frames(frame_timestamps)
+    selected_frame_timestamps = select_frames(frame_timestamps)
 
     selected_frames = {
         np.where(frame_timestamps == time)[0][0]: Image.fromarray(clip.get_frame(time))
