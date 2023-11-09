@@ -1,10 +1,10 @@
 import os
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 import pandas as pd
 import torch
 import whisper
-from moviepy.editor import VideoFileClip
 from PIL import Image
 from transformers import AutoProcessor, IdeficsForVisionText2Text
 
@@ -39,22 +39,9 @@ def format_ms_timestamp(ms_timestamp_series):
     return pd.to_datetime(ms_timestamp_series, unit="ms").dt.strftime("%M:%S.%f")
 
 
-def extract_frames_n_audio(video_path, audio_path, results_path, num_frames=2):
-    clip = VideoFileClip(video_path)
-    audio = clip.audio
-    audio.write_audiofile(audio_path)
-
-    n_frames_in_video = int(clip.fps * clip.duration)
-    frame_timestamps = np.linspace(0, clip.duration, n_frames_in_video)
-    selected_frame_timestamps = select_frames(frame_timestamps)
-
-    selected_frames = {
-        np.where(frame_timestamps == time)[0][0]: Image.fromarray(clip.get_frame(time))
-        for time in selected_frame_timestamps
-    }
-
+def create_frames_dataframe(frames, frame_timestamps):
     # assuming selected_frames is a dictionary with frame numbers as keys and Image objects as values
-    df = pd.DataFrame.from_dict(selected_frames, orient="index", columns=["image"])
+    df = pd.DataFrame.from_dict(frames, orient="index", columns=["image"])
 
     # add a 'frame' column with the frame numbers
     df["frame"] = df.index
@@ -71,10 +58,29 @@ def extract_frames_n_audio(video_path, audio_path, results_path, num_frames=2):
     return df
 
 
-def extract_transcript(audio_path):
+def extract_frames(video_clip, all_frames=False):
+    n_frames_in_video = int(video_clip.fps * video_clip.duration)
+    frame_timestamps = np.linspace(0, video_clip.duration, n_frames_in_video)
+    if all_frames:
+        selected_frames_timestamps = frame_timestamps
+    else:
+        selected_frames_timestamps = select_frames(frame_timestamps)
+
+    selected_frames = {
+        np.where(frame_timestamps == time)[0][0]: Image.fromarray(video_clip.get_frame(time))
+        for time in selected_frames_timestamps
+    }
+    frames_dataframe = create_frames_dataframe(selected_frames, frame_timestamps)
+    return frames_dataframe
+
+
+def extract_transcript(video_clip):
     whisper_model = whisper.load_model("base")
     print(whisper_model.device)
-    transcript = whisper_model.transcribe(audio_path)
+    audio = video_clip.audio
+    with NamedTemporaryFile(suffix=".wav") as tmpfile:
+        audio.write_audiofile(tmpfile.name)
+        transcript = whisper_model.transcribe(tmpfile.name)
     return transcript
 
 

@@ -1,23 +1,25 @@
 import argparse
-from tempfile import NamedTemporaryFile
+
+from moviepy.editor import VideoFileClip
 
 from tiktok_reporter_analysis.common import (
-    extract_frames_n_audio,
+    extract_frames,
     extract_transcript,
     multi_modal_analysis,
 )
 
 
 def classify_reported(video_path, results_path, testing=False):
-    with NamedTemporaryFile(suffix=".wav") as tmpfile:
-        frames = extract_frames_n_audio(video_path, tmpfile.name, results_path)
-        transcript = extract_transcript(tmpfile.name)
+    video_clip = VideoFileClip(video_path)
+    frames_dataframe = extract_frames(video_clip, all_frames=False)
+
+    transcript = extract_transcript(video_clip)
 
     print(transcript["text"])
 
-    frames["video"] = 0
+    frames_dataframe["video"] = 0
 
-    multi_modal_analysis(frames, results_path, transcript=transcript, testing=testing)
+    multi_modal_analysis(frames_dataframe, results_path, transcript=transcript, testing=testing)
 
 
 if __name__ == "__main__":
