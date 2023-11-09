@@ -4,7 +4,6 @@ from tempfile import NamedTemporaryFile
 import numpy as np
 import pandas as pd
 import torch
-import whisper
 from PIL import Image
 from transformers import AutoProcessor, IdeficsForVisionText2Text
 
@@ -74,9 +73,7 @@ def extract_frames(video_clip, all_frames=False):
     return frames_dataframe
 
 
-def extract_transcript(video_clip):
-    whisper_model = whisper.load_model("base")
-    print(whisper_model.device)
+def extract_transcript(video_clip, whisper_model):
     audio = video_clip.audio
     with NamedTemporaryFile(suffix=".wav") as tmpfile:
         audio.write_audiofile(tmpfile.name)
@@ -84,15 +81,13 @@ def extract_transcript(video_clip):
     return transcript
 
 
-def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
+def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()
     SYSTEM_PROMPT[-1] = SYSTEM_PROMPT[-1][:-1]  # Remove EOF newline
 
     with open("./tiktok_reporter_analysis/prompts/idefics_prompt.txt", "r") as f:
         PROMPT = f.read()[:-1]
-    if transcript:
-        PROMPT += "\n" + transcript["text"]
 
     print("Prompt:")
     print(PROMPT)
@@ -118,13 +113,18 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
         image1 = current_frames[0]
         image2 = current_frames[1]
 
+        if transcripts:
+            CURRENT_PROMPT = PROMPT + "\n" + transcripts[video]["text"]
+        else:
+            CURRENT_PROMPT = PROMPT
+
         prompts += [
             SYSTEM_PROMPT
             + [
                 "\nUser:",
                 image1,
                 image2,
-                PROMPT,
+                CURRENT_PROMPT,
                 "<end_of_utterance>",
                 "\nAssistant:",
             ],

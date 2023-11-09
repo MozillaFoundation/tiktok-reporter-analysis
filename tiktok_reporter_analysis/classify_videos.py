@@ -1,11 +1,14 @@
 import pandas as pd
+import whisper
 from moviepy.editor import VideoFileClip
 
 from tiktok_reporter_analysis.analyze_screen_recording import analyze_screen_recording
 from tiktok_reporter_analysis.common import (
     extract_frames,
+    extract_transcript,
     multi_modal_analysis,
     select_frames,
+    set_backend,
 )
 
 
@@ -47,6 +50,17 @@ def classify_videos(video_path, frames_folder, checkpoint_path, results_path, te
 
     frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
 
+    video_start_end = {video: [video_frames[video][0], video_frames[video][-1]] for video in video_frames.keys()}
+    transcripts = {}
+    whisper_model = whisper.load_model("base", device=set_backend())
+    print(whisper_model.device)
+    for video in video_frames.keys():
+        current_clip = video_clip.subclip(
+            video_start_end[video][0] / video_clip.fps, video_start_end[video][1] / video_clip.fps
+        )
+        transcript = extract_transcript(current_clip, whisper_model)
+        transcripts[video] = transcript
+
     selected_frames = []
     for video in video_frames.keys():
         frames = video_frames[video]
@@ -54,7 +68,7 @@ def classify_videos(video_path, frames_folder, checkpoint_path, results_path, te
         selected_frames += current_frames
 
     selected_frames_dataframe = frames_dataframe.loc[selected_frames]
-    multi_modal_analysis(selected_frames_dataframe, results_path, testing=testing)
+    multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
 
 
 if __name__ == "__main__":
