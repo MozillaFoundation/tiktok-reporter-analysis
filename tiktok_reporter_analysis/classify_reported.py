@@ -15,7 +15,9 @@ def classify_reported(video_path, results_path, testing=False):
 
     print(transcript["text"])
 
-    multi_modal_analysis({0: frames}, results_path, transcript=transcript, testing=testing)
+    frames["video"] = 0
+
+    multi_modal_analysis(frames, results_path, transcript=transcript, testing=testing)
 
 
 if __name__ == "__main__":

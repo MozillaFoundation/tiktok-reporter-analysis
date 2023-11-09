@@ -46,20 +46,29 @@ def extract_frames_n_audio(video_path, audio_path, results_path, num_frames=2):
 
     n_frames_in_video = int(clip.fps * clip.duration)
     frame_timestamps = np.linspace(0, clip.duration, n_frames_in_video)
-    selected_frames = extract_frames(frame_timestamps)
+    selected_frame_timestamps = extract_frames(frame_timestamps)
 
-    frames = {
-        np.where(frame_timestamps == time)[0][0]: Image.fromarray(clip.get_frame(time)) for time in selected_frames
+    selected_frames = {
+        np.where(frame_timestamps == time)[0][0]: Image.fromarray(clip.get_frame(time))
+        for time in selected_frame_timestamps
     }
 
-    # Create a pandas dataframe with frame number and timestamp
-    df = pd.DataFrame({"frame": list(frames.keys()), "timestamp": selected_frames})
-    df["timestamp"] = df["timestamp"] * 1000  # Convert to milliseconds
+    # assuming selected_frames is a dictionary with frame numbers as keys and Image objects as values
+    df = pd.DataFrame.from_dict(selected_frames, orient="index", columns=["image"])
 
-    # Write the dataframe to a csv file
-    df.to_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index=False)
+    # add a 'frame' column with the frame numbers
+    df["frame"] = df.index
 
-    return frames
+    # reset the index to start from 0
+    df = df.reset_index(drop=True)
+
+    # add a 'timestamp' column with the corresponding timestamps
+    df["timestamp"] = df["frame"].apply(lambda x: frame_timestamps[x] * 1000)
+
+    # reorder the columns
+    df = df[["frame", "timestamp", "image"]]
+
+    return df
 
 
 def extract_transcript(audio_path):
@@ -82,7 +91,7 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     print("Prompt:")
     print(PROMPT)
 
-    frames_to_timestamps = pd.read_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index_col=0)["timestamp"]
+    frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
 
     device = set_backend()
 
@@ -97,10 +106,11 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
     processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 
     prompts = []
-    for video in frames.keys():
-        current_frames = list(frames[video].keys())
-        image1 = frames[video][current_frames[0]]
-        image2 = frames[video][current_frames[1]]
+    videos = frames["video"].unique()
+    for video in videos:
+        current_frames = frames.loc[frames["video"] == video, "image"].to_list()
+        image1 = current_frames[0]
+        image2 = current_frames[1]
 
         prompts += [
             SYSTEM_PROMPT
@@ -128,12 +138,10 @@ def multi_modal_analysis(frames, results_path, transcript=None, testing=False):
 
     output_df = pd.DataFrame(
         {
-            "video": [video for video in frames.keys()],
-            "frame1": [list(frames[video].keys())[0] for video in frames.keys()],
-            "frame2": [list(frames[video].keys())[1] for video in frames.keys()],
-            "description": [
-                generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in frames.keys()
-            ],
+            "video": [video for video in videos],
+            "frame1": [frames.loc[frames["video"] == video, "frame"][0] for video in videos],
+            "frame2": [frames.loc[frames["video"] == video, "frame"][1] for video in videos],
+            "description": [generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in videos],
         }
     )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
