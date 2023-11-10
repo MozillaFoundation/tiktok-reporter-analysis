@@ -89,7 +89,11 @@ def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
         image2 = current_frames[1]
 
         if transcripts:
-            CURRENT_PROMPT = prompt + "\n" + transcripts[video]["text"]
+            CURRENT_PROMPT = (
+                prompt
+                + " The following line is a audio transcript to give some more context.\n"
+                + transcripts[video]["text"]
+            )
         else:
             CURRENT_PROMPT = prompt
 
