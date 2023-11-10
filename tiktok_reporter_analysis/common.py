@@ -168,10 +168,11 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
             "frame1": [frames.loc[frames["video"] == video, "frame"].iloc[0] for video in videos],
             "frame2": [frames.loc[frames["video"] == video, "frame"].iloc[1] for video in videos],
             "description": [generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in videos],
+            "audio_transcript": [transcripts[video]["text"] for video in videos],
         }
     )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
     output_df["timestamp2"] = format_ms_timestamp(output_df["frame2"].map(frames_to_timestamps))
-    output_df = output_df[["video", "frame1", "timestamp1", "frame2", "timestamp2", "description"]]
+    output_df = output_df[["video", "frame1", "timestamp1", "frame2", "timestamp2", "description", "audio_transcript"]]
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")
