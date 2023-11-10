@@ -81,6 +81,47 @@ def extract_transcript(video_clip, whisper_model):
     return transcript
 
 
+def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
+    prompts = []
+    for video in videos:
+        current_frames = frames.loc[frames["video"] == video, "image"].to_list()
+        image1 = current_frames[0]
+        image2 = current_frames[1]
+
+        if transcripts:
+            CURRENT_PROMPT = prompt + "\n" + transcripts[video]["text"]
+        else:
+            CURRENT_PROMPT = prompt
+
+        prompts += [
+            system_prompt
+            + [
+                "\nUser:",
+                image1,
+                image2,
+                CURRENT_PROMPT,
+                "<end_of_utterance>",
+                "\nAssistant:",
+            ],
+        ]
+    return prompts
+
+
+def generate_batch(prompts, model, processor, device):
+    # --batched mode
+    inputs = processor(prompts, add_end_of_utterance_token=False, return_tensors="pt").to(device)
+    # --single sample mode
+    # inputs = processor(prompts[0], return_tensors="pt").to(device)
+
+    # Generation args
+    exit_condition = processor.tokenizer("<end_of_utterance>", add_special_tokens=False).input_ids
+    bad_words_ids = processor.tokenizer(["<image>", "<fake_token_around_image>"], add_special_tokens=False).input_ids
+
+    generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_ids=bad_words_ids, max_length=1500)
+    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
+    return generated_text
+
+
 def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()
@@ -108,39 +149,14 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
 
     prompts = []
     videos = frames["video"].unique()
-    for video in videos:
-        current_frames = frames.loc[frames["video"] == video, "image"].to_list()
-        image1 = current_frames[0]
-        image2 = current_frames[1]
-
-        if transcripts:
-            CURRENT_PROMPT = PROMPT + "\n" + transcripts[video]["text"]
-        else:
-            CURRENT_PROMPT = PROMPT
-
-        prompts += [
-            SYSTEM_PROMPT
-            + [
-                "\nUser:",
-                image1,
-                image2,
-                CURRENT_PROMPT,
-                "<end_of_utterance>",
-                "\nAssistant:",
-            ],
-        ]
-
-    # --batched mode
-    inputs = processor(prompts, add_end_of_utterance_token=False, return_tensors="pt").to(device)
-    # --single sample mode
-    # inputs = processor(prompts[0], return_tensors="pt").to(device)
-
-    # Generation args
-    exit_condition = processor.tokenizer("<end_of_utterance>", add_special_tokens=False).input_ids
-    bad_words_ids = processor.tokenizer(["<image>", "<fake_token_around_image>"], add_special_tokens=False).input_ids
-
-    generated_ids = model.generate(**inputs, eos_token_id=exit_condition, bad_words_ids=bad_words_ids, max_length=1500)
-    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
+    batch_size = 8
+    n_batches = len(videos) // batch_size + 1
+    generated_text = []
+    for batch in range(n_batches):
+        current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
+        current_batch_transcripts = {video: transcripts[video] for video in current_batch_videos}
+        prompts = create_prompts(frames, current_batch_videos, SYSTEM_PROMPT, PROMPT, current_batch_transcripts)
+        generated_text += generate_batch(prompts, model, processor, device)
 
     output_df = pd.DataFrame(
         {
