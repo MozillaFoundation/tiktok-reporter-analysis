@@ -83,8 +83,10 @@ def extract_transcript(video_clip, whisper_model):
 
 def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
     prompts = []
-    for video in videos:
-        current_frames = frames.loc[frames["video"] == video, "image"].to_list()
+    for video_file, video in videos:
+        current_frames = frames.loc[
+            (frames["video"] == video) & (frames["video_file"] == video_file), "image"
+        ].to_list()
         image1 = current_frames[0]
         image2 = current_frames[1]
 
@@ -92,7 +94,7 @@ def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
             CURRENT_PROMPT = (
                 prompt
                 + " The following line is a audio transcript to give some more context.\n"
-                + transcripts[video]["text"]
+                + transcripts[video_file]["text"]
             )
         else:
             CURRENT_PROMPT = prompt
@@ -152,27 +154,40 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
 
     prompts = []
-    videos = frames["video"].unique()
+    videos = frames.set_index(["video_file", "video"]).index.unique()
     batch_size = 8
     n_batches = len(videos) // batch_size + 1
     generated_text = []
     for batch in range(n_batches):
         current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
-        current_batch_transcripts = {video: transcripts[video] for video in current_batch_videos}
+        current_batch_transcripts = {
+            video_file: transcripts[video_file] for video_file in current_batch_videos.get_level_values("video_file")
+        }
         prompts = create_prompts(frames, current_batch_videos, SYSTEM_PROMPT, PROMPT, current_batch_transcripts)
         generated_text += generate_batch(prompts, model, processor, device)
 
     output_df = pd.DataFrame(
         {
-            "video": [video for video in videos],
-            "frame1": [frames.loc[frames["video"] == video, "frame"].iloc[0] for video in videos],
-            "frame2": [frames.loc[frames["video"] == video, "frame"].iloc[1] for video in videos],
-            "description": [generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in videos],
-            "audio_transcript": [transcripts[video]["text"] for video in videos],
+            "video_file": [video_file for video_file, _ in videos],
+            "video": [video for _, video in videos],
+            "frame1": [
+                frames.loc[(frames["video"] == video) & (frames["video_file"] == video_file), "frame"].iloc[0]
+                for video_file, video in videos
+            ],
+            "frame2": [
+                frames.loc[(frames["video"] == video) & (frames["video_file"] == video_file), "frame"].iloc[1]
+                for video_file, video in videos
+            ],
+            "description": [
+                generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in range(len(videos))
+            ],
+            "audio_transcript": [transcripts[video_file]["text"] for video_file, _ in videos],
         }
     )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
     output_df["timestamp2"] = format_ms_timestamp(output_df["frame2"].map(frames_to_timestamps))
-    output_df = output_df[["video", "frame1", "timestamp1", "frame2", "timestamp2", "description", "audio_transcript"]]
+    output_df = output_df[
+        ["video_file", "video", "frame1", "timestamp1", "frame2", "timestamp2", "description", "audio_transcript"]
+    ]
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")
