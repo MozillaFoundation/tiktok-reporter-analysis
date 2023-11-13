@@ -1,5 +1,4 @@
 import argparse
-import os
 
 import pandas as pd
 import whisper
@@ -8,16 +7,14 @@ from moviepy.editor import VideoFileClip
 from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
+    get_video_files,
     multi_modal_analysis,
     set_backend,
 )
 
 
 def classify_reported(video_path, results_path, testing=False):
-    if os.path.isdir(video_path):
-        video_files = [os.path.join(video_path, f) for f in os.listdir(video_path) if f.endswith(".mp4")]
-    else:
-        video_files = [video_path]
+    video_files = get_video_files(video_path)
 
     whisper_model = whisper.load_model("base", device=set_backend())
 
@@ -34,7 +31,7 @@ def classify_reported(video_path, results_path, testing=False):
         current_frames_dataframe["video"] = 0
         current_frames_dataframe["video_file"] = video_file
         frames_dataframes.append(current_frames_dataframe)
-        transcripts[video_file] = transcript
+        transcripts[(video_file, 0)] = transcript
 
     frames_dataframe = pd.concat(frames_dataframes)
     multi_modal_analysis(frames_dataframe, results_path, transcripts=transcripts, testing=testing)

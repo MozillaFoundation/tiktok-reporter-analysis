@@ -5,7 +5,7 @@ import timm
 import torch
 import torchvision.transforms as transforms
 
-from tiktok_reporter_analysis.common import format_ms_timestamp, set_backend
+from tiktok_reporter_analysis.common import format_ms_timestamp
 
 
 def load_checkpoint(checkpoint_path, device):
@@ -46,11 +46,8 @@ def predict(image, model, device):
     return predicted.item()
 
 
-def analyze_screen_recording(frames_dataframe, checkpoint_path, results_path):
+def analyze_screen_recording(frames_dataframe, model, device, results_path):
     frames_to_timestamps = frames_dataframe.set_index("frame")["timestamp"].to_dict()
-
-    device = set_backend()
-    model = load_checkpoint(checkpoint_path, device)
 
     predictions = []
     for _, row in frames_dataframe.iterrows():

@@ -23,6 +23,14 @@ def set_backend():
     return device
 
 
+def get_video_files(video_path):
+    if os.path.isdir(video_path):
+        video_files = [os.path.join(video_path, f) for f in os.listdir(video_path) if f.endswith(".mp4")]
+    else:
+        video_files = [video_path]
+    return video_files
+
+
 def select_frames(frames):
     min_frame = min(frames)
     max_frame = max(frames)
@@ -94,7 +102,7 @@ def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
             CURRENT_PROMPT = (
                 prompt
                 + " The following line is a audio transcript to give some more context.\n"
-                + transcripts[video_file]["text"]
+                + transcripts[(video_file, video)]["text"]
             )
         else:
             CURRENT_PROMPT = prompt
@@ -160,9 +168,7 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     generated_text = []
     for batch in range(n_batches):
         current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
-        current_batch_transcripts = {
-            video_file: transcripts[video_file] for video_file in current_batch_videos.get_level_values("video_file")
-        }
+        current_batch_transcripts = {video_file: transcripts[video_file] for video_file in current_batch_videos}
         prompts = create_prompts(frames, current_batch_videos, SYSTEM_PROMPT, PROMPT, current_batch_transcripts)
         generated_text += generate_batch(prompts, model, processor, device)
 
@@ -181,7 +187,7 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
             "description": [
                 generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in range(len(videos))
             ],
-            "audio_transcript": [transcripts[video_file]["text"] for video_file, _ in videos],
+            "audio_transcript": [transcripts[(video_file, video)]["text"] for video_file, video in videos],
         }
     )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
