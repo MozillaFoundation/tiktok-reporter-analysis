@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 
 from .classify_reported import classify_reported
 from .classify_videos import classify_videos
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     logger = logging.getLogger("tiktok_reporter_analysis")
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s - %(levelname)s:%(name)s:%(lineno)s - %(message)s")
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
