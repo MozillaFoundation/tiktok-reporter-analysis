@@ -26,8 +26,8 @@ def classify_reported(video_path, results_path, testing=False):
 
     transcripts = {}
     frames_dataframes = []
-    for video_file in video_files:
-        logger.info(f"Processing {video_file}")
+    for i, video_file in enumerate(video_files):
+        logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
         video_clip = VideoFileClip(video_file)
         current_frames_dataframe = extract_frames(video_clip, all_frames=False)
         transcript = extract_transcript(video_clip, whisper_model)
