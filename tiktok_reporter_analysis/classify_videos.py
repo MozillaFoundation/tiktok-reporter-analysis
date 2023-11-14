@@ -32,8 +32,8 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False):
 
     transcripts = {}
     selected_frames_dataframes = []
-    for video_file in video_files:
-        logger.info(f"Processing {video_file}")
+    for i, video_file in enumerate(video_files):
+        logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
         video_clip = VideoFileClip(video_file)
         frames_dataframe = extract_frames(video_clip, all_frames=True)
 
