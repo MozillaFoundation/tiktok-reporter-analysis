@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from .classify_reported import classify_reported
 from .classify_videos import classify_videos
@@ -6,6 +7,13 @@ from .render_output import generate_html_report
 from .train import train
 
 if __name__ == "__main__":
+    logger = logging.getLogger("tiktok_reporter_analysis")
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s:%(name)s:%(lineno)s - %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest="command")
@@ -48,4 +56,4 @@ if __name__ == "__main__":
     elif args.command == "report":
         generate_html_report(args.results_path)
     else:
-        print("Invalid command")
+        logger.error("Invalid command")

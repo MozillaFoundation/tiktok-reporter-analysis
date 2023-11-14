@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 import pandas as pd
 import timm
@@ -6,6 +7,8 @@ import torch
 import torchvision.transforms as transforms
 
 from tiktok_reporter_analysis.common import format_ms_timestamp
+
+logger = logging.getLogger(__name__)
 
 
 def load_checkpoint(checkpoint_path, device):
@@ -47,13 +50,17 @@ def predict(image, model, device):
 
 
 def analyze_screen_recording(frames_dataframe, model, device, results_path):
+    logger.info("Analyzing screen recording frames")
     frames_to_timestamps = frames_dataframe.set_index("frame")["timestamp"].to_dict()
 
+    logger.info("Predicting frame classifications")
     predictions = []
     for _, row in frames_dataframe.iterrows():
         prediction = predict(row["image"], model, device)
         predictions.append((row["frame"], prediction))
+    logger.info("Frame classifications predicted")
 
+    logger.info("Post-processing frame classifications")
     event_names = {
         0: "Not TikTok",
         1: "TikTok video player",
@@ -100,6 +107,7 @@ def analyze_screen_recording(frames_dataframe, model, device, results_path):
     raw_predictions.reset_index().rename(columns={"index": "frame"})[
         ["frame", "timestamp", "classification", "event_name"]
     ].to_csv(results_path + "/frame_classification_data.csv", index=False)
+    logger.info("Frame classifications post-processed")
 
 
 if __name__ == "__main__":

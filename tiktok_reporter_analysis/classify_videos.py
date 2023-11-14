@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 import whisper
 from moviepy.editor import VideoFileClip
@@ -15,18 +17,23 @@ from tiktok_reporter_analysis.common import (
     set_backend,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def classify_videos(video_path, checkpoint_path, results_path, testing=False):
+    logger.info(f"Processing screen recordings from {video_path}")
     video_files = get_video_files(video_path)
 
+    logger.info("Loading frame classification and whisper models")
     device = set_backend()
     model = load_checkpoint(checkpoint_path, device)
     whisper_model = whisper.load_model("base", device=device)
+    logger.info("Frame classification and whisper models loaded")
 
     transcripts = {}
     selected_frames_dataframes = []
     for video_file in video_files:
-        print(f"Processing {video_file}")
+        logger.info(f"Processing {video_file}")
         video_clip = VideoFileClip(video_file)
         frames_dataframe = extract_frames(video_clip, all_frames=True)
 
@@ -67,11 +74,11 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False):
         video_start_end = {video: [video_frames[video][0], video_frames[video][-1]] for video in video_frames.keys()}
 
         for video in video_frames.keys():
+            logger.info(f"Extracting transcript from video {video+1}/{video_counter+1}")
             current_clip = video_clip.subclip(
                 video_start_end[video][0] / video_clip.fps, video_start_end[video][1] / video_clip.fps
             )
             transcript = extract_transcript(current_clip, whisper_model)
-            print(f"Video {video} transcript: {transcript['text']}")
             transcripts[(video_file, video)] = transcript
 
         selected_frames = []
@@ -85,6 +92,7 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False):
         selected_frames_dataframes.append(selected_frames_dataframe)
 
     selected_frames_dataframe = pd.concat(selected_frames_dataframes)
+    logger.info("Frames and transcripts extracted")
     multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
 
 
