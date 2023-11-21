@@ -1,6 +1,6 @@
 import argparse
 import logging
-
+import os
 import pandas as pd
 import timm
 import torch
@@ -102,6 +102,7 @@ def analyze_screen_recording(frames_dataframe, model, device, results_path):
     result_df = change_df[["index", "timestamp", "event_name"]].rename(columns={"index": "frame"})
 
     # Save the DataFrame to a CSV file
+    os.makedirs(results_path, exist_ok=True)
     result_df.to_csv(results_path + "/frame_event_data.csv", index=False)
     raw_predictions["event_name"] = raw_predictions["classification"].map(event_names)
     raw_predictions.reset_index().rename(columns={"index": "frame"})[
