@@ -49,21 +49,3 @@ def extract_frames_from_video(video_path, output_folder):
     cap.release()
     logger.info("Frames extraction completed.")
     return frames_n_timestamps
-
-
-if __name__ == "__main__":
-    import argparse
-
-    # Create the parser
-    parser = argparse.ArgumentParser(description="Extract frames from video")
-
-    # Add the arguments
-    parser.add_argument("video_path", type=str, help="The path to the video file")
-    parser.add_argument("output_folder", type=str, help="The path to the output folder")
-    parser.add_argument("results_path", help="path to the results folder")
-
-    # Parse the arguments
-    args = parser.parse_args()
-
-    # Call the function
-    extract_frames_from_video(args.video_path, args.output_folder, args.results_path)
