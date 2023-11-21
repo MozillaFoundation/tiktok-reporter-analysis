@@ -1,10 +1,24 @@
 import pandas as pd
-from PIL import Image
+import whisper
+from moviepy.editor import VideoFileClip
 
-from tiktok_reporter_analysis.common import extract_frames, multi_modal_analysis
+from tiktok_reporter_analysis.analyze_screen_recording import analyze_screen_recording
+from tiktok_reporter_analysis.common import (
+    extract_frames,
+    extract_transcript,
+    multi_modal_analysis,
+    select_frames,
+    set_backend,
+)
 
 
-def classify_videos(frames_folder, results_path, testing=False):
+def classify_videos(video_path, frames_folder, checkpoint_path, results_path, testing=False):
+    video_clip = VideoFileClip(video_path)
+    frames_dataframe = extract_frames(video_clip, all_frames=True)
+
+    # analyze screen recordings
+    analyze_screen_recording(frames_dataframe, checkpoint_path, results_path)
+
     # Load the CSV file
     df = pd.read_csv(results_path + "/frame_classification_data.csv")
     # Initialize a state variable to keep track of whether we are in a scrolling state
@@ -26,6 +40,7 @@ def classify_videos(frames_folder, results_path, testing=False):
             scrolling_state = False
         # Assign the video counter value to the 'video' column
         df.at[i, "video"] = video_counter
+
     # Create a dictionary where keys are video numbers and values are lists of all frames
     # with a 'TikTok video player' classification
     video_frames = {
@@ -33,13 +48,27 @@ def classify_videos(frames_folder, results_path, testing=False):
         for i in range(0, video_counter + 1)
     }
 
-    selected_frames = {}
+    frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
+
+    video_start_end = {video: [video_frames[video][0], video_frames[video][-1]] for video in video_frames.keys()}
+    transcripts = {}
+    whisper_model = whisper.load_model("base", device=set_backend())
+    print(whisper_model.device)
+    for video in video_frames.keys():
+        current_clip = video_clip.subclip(
+            video_start_end[video][0] / video_clip.fps, video_start_end[video][1] / video_clip.fps
+        )
+        transcript = extract_transcript(current_clip, whisper_model)
+        transcripts[video] = transcript
+
+    selected_frames = []
     for video in video_frames.keys():
         frames = video_frames[video]
-        current_frames = extract_frames(frames)
-        selected_frames[video] = {frame: Image.open(frames_folder + f"/frame_{frame}.jpg") for frame in current_frames}
+        current_frames = select_frames(frames)
+        selected_frames += current_frames
 
-    multi_modal_analysis(selected_frames, results_path, testing=testing)
+    selected_frames_dataframe = frames_dataframe.loc[selected_frames]
+    multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
 
 
 if __name__ == "__main__":

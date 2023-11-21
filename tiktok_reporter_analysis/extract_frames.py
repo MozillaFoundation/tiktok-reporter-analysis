@@ -2,10 +2,9 @@ import os
 import shutil
 
 import cv2
-import pandas as pd
 
 
-def extract_frames_from_video(video_path, output_folder, results_path):
+def extract_frames_from_video(video_path, output_folder):
     # Ensure output directory exists and is empty
     if os.path.exists(output_folder):
         confirm = input(f"Output directory {output_folder} already exists. Remove it? (y/n) ")
@@ -45,7 +44,6 @@ def extract_frames_from_video(video_path, output_folder, results_path):
         print(f"Extracted frame {count} of {frame_count}")
 
     cap.release()
-    pd.DataFrame(frames_n_timestamps).to_csv(os.path.join(results_path, "frames_n_timestamps.csv"), index=False)
     print("Frames extraction completed.")
 
 

@@ -1,23 +1,9 @@
 import argparse
 
-from .analyze_screen_recording import analyze_screen_recording
 from .classify_reported import classify_reported
 from .classify_videos import classify_videos
-from .extract_frames import extract_frames_from_video
 from .render_output import generate_html_report
 from .train import train
-
-
-def analyze(video_path, frames_folder, checkpoint_path, results_path, testing):
-    # extract frames from videos
-    extract_frames_from_video(video_path, frames_folder, results_path)
-
-    # analyze screen recordings
-    analyze_screen_recording(frames_folder, checkpoint_path, results_path)
-
-    # classify videos
-    classify_videos(frames_folder, results_path, testing)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -57,7 +43,7 @@ if __name__ == "__main__":
     if args.command == "train":
         train(args.train_dir, args.labels_file, args.checkpoint_dir)
     elif args.command == "analyze_screen_recording":
-        analyze(args.video_path, args.frames_folder, args.checkpoint_path, args.results_path, args.testing)
+        classify_videos(args.video_path, args.frames_folder, args.checkpoint_path, args.results_path, args.testing)
     elif args.command == "analyze_reported":
         classify_reported(args.video_path, args.results_path, args.testing)
     elif args.command == "report":
