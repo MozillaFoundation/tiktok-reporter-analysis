@@ -1,7 +1,10 @@
+import logging
 import os
 import shutil
 
 import cv2
+
+logger = logging.getLogger(__name__)
 
 
 def extract_frames_from_video(video_path, output_folder):
@@ -11,7 +14,7 @@ def extract_frames_from_video(video_path, output_folder):
         if confirm.lower() == "y":
             shutil.rmtree(output_folder)
         else:
-            print("Aborting.")
+            logger.error("Aborting.")
             exit(1)
     os.makedirs(output_folder, exist_ok=True)
 
@@ -19,11 +22,11 @@ def extract_frames_from_video(video_path, output_folder):
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
-        print("Error: Couldn't open the video file.")
+        logger.error("Error: Couldn't open the video file.")
         return
 
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    print(f"Total frames: {frame_count}")
+    logger.info(f"Total frames: {frame_count}")
 
     count = 0
     frames_n_timestamps = []
@@ -41,10 +44,11 @@ def extract_frames_from_video(video_path, output_folder):
         cv2.imwrite(frame_filename, frame)
 
         count += 1
-        print(f"Extracted frame {count} of {frame_count}")
+        logger.info(f"Extracted frame {count} of {frame_count}")
 
     cap.release()
-    print("Frames extraction completed.")
+    logger.info("Frames extraction completed.")
+    return frames_n_timestamps
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import timm
@@ -9,6 +10,8 @@ from torch.utils.data import DataLoader, Dataset, random_split
 
 from tiktok_reporter_analysis.common import set_backend
 from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
+
+logger = logging.getLogger(__name__)
 
 
 def generate_label_list(transitions):
@@ -101,13 +104,13 @@ def train(train_dir, labels_file, checkpoint_dir):
 
     screen_recordings_dir = os.path.join(os.path.dirname(labels_file), "screen_recordings")
     video_path = os.path.join(screen_recordings_dir, data[0]["filename"])
-    print(video_path)
+    logger.info(f"Extracting frames from video: {video_path}")
     extract_frames_from_video(video_path, image_folder)
 
     image_files = [
         os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))
     ]
-    print(f"There are {len(image_files)} files and {len(labels)} labels.")
+    logger.info(f"There are {len(image_files)} files and {len(labels)} labels.")
     image_files.sort()
 
     transform = transforms.Compose(
@@ -141,21 +144,19 @@ def train(train_dir, labels_file, checkpoint_dir):
     for epoch in range(n_epochs):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         test_loss, test_acc = evaluate(model, test_loader, criterion, device)
-        print(
-            print(
-                f"Epoch: {epoch+1}/{n_epochs}.. "
-                f"Train Loss: {train_loss:.4f}, "
-                f"Train Acc: {train_acc:.2f}%, "
-                f"Test Loss: {test_loss:.4f}, "
-                f"Test Acc: {test_acc:.2f}%"
-            )
+        logger.info(
+            f"Epoch: {epoch+1}/{n_epochs}.. "
+            f"Train Loss: {train_loss:.4f}, "
+            f"Train Acc: {train_acc:.2f}%, "
+            f"Test Loss: {test_loss:.4f}, "
+            f"Test Acc: {test_acc:.2f}%"
         )
 
         # Save the model checkpoint if it has the best test loss so far
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             torch.save(model.state_dict(), os.path.join(checkpoint_dir, "best_model.pth"))
-            print(f"New best model saved to {checkpoint_dir}")
+            logger.info(f"New best model saved to {checkpoint_dir}")
 
 
 if __name__ == "__main__":

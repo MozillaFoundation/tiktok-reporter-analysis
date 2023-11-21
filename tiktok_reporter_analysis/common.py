@@ -1,3 +1,4 @@
+import logging
 import os
 from tempfile import NamedTemporaryFile
 
@@ -7,10 +8,11 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, IdeficsForVisionText2Text
 
+logger = logging.getLogger(__name__)
+
 
 def set_backend():
     use_mps = torch.backends.mps.is_available()
-    print(f"MPS available: {use_mps}")
 
     # If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
     if use_mps:
@@ -19,7 +21,7 @@ def set_backend():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    print(f"Using device: {device}")
+    logger.info(f"Using device: {device}")
     return device
 
 
@@ -66,6 +68,7 @@ def create_frames_dataframe(frames, frame_timestamps):
 
 
 def extract_frames(video_clip, all_frames=False):
+    logger.info("Extracting frames")
     n_frames_in_video = int(video_clip.fps * video_clip.duration)
     frame_timestamps = np.linspace(0, video_clip.duration, n_frames_in_video)
     if all_frames:
@@ -78,6 +81,7 @@ def extract_frames(video_clip, all_frames=False):
         for time in selected_frames_timestamps
     }
     frames_dataframe = create_frames_dataframe(selected_frames, frame_timestamps)
+    logger.info("Frames extracted")
     return frames_dataframe
 
 
@@ -137,6 +141,7 @@ def generate_batch(prompts, model, processor, device):
 
 
 def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
+    logger.info("Running multimodal analysis")
     with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
         SYSTEM_PROMPT = f.readlines()
     SYSTEM_PROMPT[-1] = SYSTEM_PROMPT[-1][:-1]  # Remove EOF newline
@@ -144,13 +149,10 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     with open("./tiktok_reporter_analysis/prompts/idefics_prompt.txt", "r") as f:
         PROMPT = f.read()[:-1]
 
-    print("Prompt:")
-    print(PROMPT)
-
     frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
 
+    logger.info("Loading multimodal model")
     device = set_backend()
-
     if testing:
         checkpoint = "HuggingFaceM4/tiny-random-idefics"
     else:
@@ -160,6 +162,7 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
         device
     )
     processor = AutoProcessor.from_pretrained(checkpoint, cache_dir=cache_dir)
+    logger.info("Multimodal model loaded")
 
     prompts = []
     videos = frames.set_index(["video_file", "video"]).index.unique()
@@ -167,11 +170,13 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     n_batches = len(videos) // batch_size + 1
     generated_text = []
     for batch in range(n_batches):
+        logger.info(f"Generating for batch {batch + 1} of {n_batches}")
         current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
         current_batch_transcripts = {video_file: transcripts[video_file] for video_file in current_batch_videos}
         prompts = create_prompts(frames, current_batch_videos, SYSTEM_PROMPT, PROMPT, current_batch_transcripts)
         generated_text += generate_batch(prompts, model, processor, device)
 
+    logger.info("Saving results")
     output_df = pd.DataFrame(
         {
             "video_file": [video_file for video_file, _ in videos],
@@ -197,3 +202,4 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     ]
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")
+    logger.info("Results saved")

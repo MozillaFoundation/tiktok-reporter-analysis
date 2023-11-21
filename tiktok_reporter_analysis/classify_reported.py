@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 import pandas as pd
 import whisper
@@ -12,28 +13,31 @@ from tiktok_reporter_analysis.common import (
     set_backend,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def classify_reported(video_path, results_path, testing=False):
+    logger.info(f"Processing reported videos from {video_path}")
     video_files = get_video_files(video_path)
 
+    logger.info("Loading whisper model")
     whisper_model = whisper.load_model("base", device=set_backend())
+    logger.info("Whisper model loaded")
 
     transcripts = {}
     frames_dataframes = []
-    for video_file in video_files:
-        print(f"Processing {video_file}")
+    for i, video_file in enumerate(video_files):
+        logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
         video_clip = VideoFileClip(video_file)
         current_frames_dataframe = extract_frames(video_clip, all_frames=False)
         transcript = extract_transcript(video_clip, whisper_model)
-
-        print(f"Transcript: {transcript['text']}")
-
         current_frames_dataframe["video"] = 0
         current_frames_dataframe["video_file"] = video_file
         frames_dataframes.append(current_frames_dataframe)
         transcripts[(video_file, 0)] = transcript
 
     frames_dataframe = pd.concat(frames_dataframes)
+    logger.info("Frames and transcripts extracted")
     multi_modal_analysis(frames_dataframe, results_path, transcripts=transcripts, testing=testing)
 
 
