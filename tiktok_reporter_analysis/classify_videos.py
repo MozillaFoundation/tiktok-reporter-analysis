@@ -2,72 +2,89 @@ import pandas as pd
 import whisper
 from moviepy.editor import VideoFileClip
 
-from tiktok_reporter_analysis.analyze_screen_recording import analyze_screen_recording
+from tiktok_reporter_analysis.analyze_screen_recording import (
+    analyze_screen_recording,
+    load_checkpoint,
+)
 from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
+    get_video_files,
     multi_modal_analysis,
     select_frames,
     set_backend,
 )
 
 
-def classify_videos(video_path, frames_folder, checkpoint_path, results_path, testing=False):
-    video_clip = VideoFileClip(video_path)
-    frames_dataframe = extract_frames(video_clip, all_frames=True)
+def classify_videos(video_path, checkpoint_path, results_path, testing=False):
+    video_files = get_video_files(video_path)
 
-    # analyze screen recordings
-    analyze_screen_recording(frames_dataframe, checkpoint_path, results_path)
+    device = set_backend()
+    model = load_checkpoint(checkpoint_path, device)
+    whisper_model = whisper.load_model("base", device=device)
 
-    # Load the CSV file
-    df = pd.read_csv(results_path + "/frame_classification_data.csv")
-    # Initialize a state variable to keep track of whether we are in a scrolling state
-    scrolling_state = False
-    # Create a new column 'video' and initialize it with zeros
-    df["video"] = 0
-    # Initialize a video counter
-    video_counter = 0
-
-    # Iterate over the DataFrame rows
-    for i, row in df.iterrows():
-        # If the event is 'Scrolling', set the scrolling state to True
-        if row["event_name"] == "Scrolling":
-            scrolling_state = True
-        # If the event is 'TikTok video player' and we are in a scrolling state, increment the video counter
-        # and set the scrolling state to False
-        elif row["event_name"] == "TikTok video player" and scrolling_state:
-            video_counter += 1
-            scrolling_state = False
-        # Assign the video counter value to the 'video' column
-        df.at[i, "video"] = video_counter
-
-    # Create a dictionary where keys are video numbers and values are lists of all frames
-    # with a 'TikTok video player' classification
-    video_frames = {
-        i: list(df[(df["video"] == i) & (df["event_name"] == "TikTok video player")].index)
-        for i in range(0, video_counter + 1)
-    }
-
-    frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
-
-    video_start_end = {video: [video_frames[video][0], video_frames[video][-1]] for video in video_frames.keys()}
     transcripts = {}
-    whisper_model = whisper.load_model("base", device=set_backend())
-    print(whisper_model.device)
-    for video in video_frames.keys():
-        current_clip = video_clip.subclip(
-            video_start_end[video][0] / video_clip.fps, video_start_end[video][1] / video_clip.fps
-        )
-        transcript = extract_transcript(current_clip, whisper_model)
-        transcripts[video] = transcript
+    selected_frames_dataframes = []
+    for video_file in video_files:
+        print(f"Processing {video_file}")
+        video_clip = VideoFileClip(video_file)
+        frames_dataframe = extract_frames(video_clip, all_frames=True)
 
-    selected_frames = []
-    for video in video_frames.keys():
-        frames = video_frames[video]
-        current_frames = select_frames(frames)
-        selected_frames += current_frames
+        # analyze screen recordings
+        analyze_screen_recording(frames_dataframe, model, device, results_path)
 
-    selected_frames_dataframe = frames_dataframe.loc[selected_frames]
+        # Load the CSV file
+        df = pd.read_csv(results_path + "/frame_classification_data.csv")
+        # Initialize a state variable to keep track of whether we are in a scrolling state
+        scrolling_state = False
+        # Create a new column 'video' and initialize it with zeros
+        df["video"] = 0
+        # Initialize a video counter
+        video_counter = 0
+
+        # Iterate over the DataFrame rows
+        for i, row in df.iterrows():
+            # If the event is 'Scrolling', set the scrolling state to True
+            if row["event_name"] == "Scrolling":
+                scrolling_state = True
+            # If the event is 'TikTok video player' and we are in a scrolling state, increment the video counter
+            # and set the scrolling state to False
+            elif row["event_name"] == "TikTok video player" and scrolling_state:
+                video_counter += 1
+                scrolling_state = False
+            # Assign the video counter value to the 'video' column
+            df.at[i, "video"] = video_counter
+
+        # Create a dictionary where keys are video numbers and values are lists of all frames
+        # with a 'TikTok video player' classification
+        video_frames = {
+            i: list(df[(df["video"] == i) & (df["event_name"] == "TikTok video player")].index)
+            for i in range(0, video_counter + 1)
+        }
+
+        frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
+
+        video_start_end = {video: [video_frames[video][0], video_frames[video][-1]] for video in video_frames.keys()}
+
+        for video in video_frames.keys():
+            current_clip = video_clip.subclip(
+                video_start_end[video][0] / video_clip.fps, video_start_end[video][1] / video_clip.fps
+            )
+            transcript = extract_transcript(current_clip, whisper_model)
+            print(f"Video {video} transcript: {transcript['text']}")
+            transcripts[(video_file, video)] = transcript
+
+        selected_frames = []
+        for video in video_frames.keys():
+            frames = video_frames[video]
+            current_frames = select_frames(frames)
+            selected_frames += current_frames
+
+        selected_frames_dataframe = frames_dataframe.loc[selected_frames]
+        selected_frames_dataframe["video_file"] = video_file
+        selected_frames_dataframes.append(selected_frames_dataframe)
+
+    selected_frames_dataframe = pd.concat(selected_frames_dataframes)
     multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
 
 

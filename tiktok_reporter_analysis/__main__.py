@@ -20,8 +20,7 @@ if __name__ == "__main__":
 
     # create the parser for the "analyze" command
     analyze_parser = subparsers.add_parser("analyze_screen_recording")
-    analyze_parser.add_argument("video_path", help="path to the video file")
-    analyze_parser.add_argument("--frames_folder", help="path to the extracted frames folder", default="./data/frames")
+    analyze_parser.add_argument("video_path", help="path to the video file or folder containing multiple videos")
     analyze_parser.add_argument(
         "--checkpoint_path", help="path to the checkpoint file", default="./data/checkpoints/best_model.pth"
     )
@@ -30,7 +29,7 @@ if __name__ == "__main__":
 
     # create the parser for the "reported" command
     reported_parser = subparsers.add_parser("analyze_reported")
-    reported_parser.add_argument("video_path", help="path to the video file")
+    reported_parser.add_argument("video_path", help="path to the video file or folder containing multiple videos")
     reported_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     reported_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     if args.command == "train":
         train(args.train_dir, args.labels_file, args.checkpoint_dir)
     elif args.command == "analyze_screen_recording":
-        classify_videos(args.video_path, args.frames_folder, args.checkpoint_path, args.results_path, args.testing)
+        classify_videos(args.video_path, args.checkpoint_path, args.results_path, args.testing)
     elif args.command == "analyze_reported":
         classify_reported(args.video_path, args.results_path, args.testing)
     elif args.command == "report":
