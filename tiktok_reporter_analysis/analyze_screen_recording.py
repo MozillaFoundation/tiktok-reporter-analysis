@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+
 import pandas as pd
 import timm
 import torch
@@ -96,8 +97,6 @@ def analyze_screen_recording(frames_dataframe, model, device, results_path):
 
     # Map classification to event name
     change_df["event_name"] = change_df["classification"].map(event_names)
-
-
 
     # The resulting DataFrame
     result_df = change_df[["index", "timestamp", "event_name"]].rename(columns={"index": "frame"})
