@@ -1,4 +1,5 @@
 data/training_data/screen_recordings/*.mp4
+data/training_data/screen_recordings/*.mov
 data/training_data/reported_videos/*.mp?
 data/frames/*
 data/training_data/*.mp4
