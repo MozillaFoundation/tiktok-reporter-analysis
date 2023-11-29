@@ -1,6 +1,6 @@
 import argparse
 import logging
-
+import os
 import pandas as pd
 import timm
 import torch
@@ -75,6 +75,18 @@ def analyze_screen_recording(frames_dataframe, model, device, results_path):
     raw_predictions = pd.DataFrame({"classification": [pred[1] for pred in predictions]})
     raw_predictions["timestamp"] = raw_predictions.index.map(frames_to_timestamps)
     raw_predictions["timestamp"] = format_ms_timestamp(raw_predictions["timestamp"])
+
+    # Identify single frame events and replace their classification with the previous frame's classification
+    # Only if the classification of the current frame is also different from the previous frame's classification
+    # And the frame numbers are adjacent
+    single_frame_events = raw_predictions[
+        (raw_predictions["classification"].shift(-1) != raw_predictions["classification"])
+        & (raw_predictions["classification"].shift(1) != raw_predictions["classification"])
+    ]
+    for index in single_frame_events.index:
+        if index > 0:  # Skip the first frame
+            raw_predictions.loc[index, "classification"] = raw_predictions.loc[index - 1, "classification"]
+
     df = raw_predictions.copy(deep=True)
     # Calculate the difference between consecutive rows
     df["change"] = df["classification"].diff()
@@ -85,23 +97,13 @@ def analyze_screen_recording(frames_dataframe, model, device, results_path):
     # Map classification to event name
     change_df["event_name"] = change_df["classification"].map(event_names)
 
-    # Identify single frame events and replace their classification with the previous frame's classification
-    # Only if the classification of the current frame is also different from the previous frame's classification
-    # And the frame numbers are adjacent
-    single_frame_events = change_df[
-        (change_df["classification"].shift(-1) != change_df["classification"])
-        & (change_df["classification"].shift(1) != change_df["classification"])
-        & (change_df["index"].diff().abs() == 1)
-    ]
-    for index in single_frame_events.index:
-        if index > 0:  # Skip the first frame
-            change_df.loc[index, "classification"] = change_df.loc[index - 1, "classification"]
-            change_df.loc[index, "event_name"] = change_df.loc[index - 1, "event_name"]
+
 
     # The resulting DataFrame
     result_df = change_df[["index", "timestamp", "event_name"]].rename(columns={"index": "frame"})
 
     # Save the DataFrame to a CSV file
+    os.makedirs(results_path, exist_ok=True)
     result_df.to_csv(results_path + "/frame_event_data.csv", index=False)
     raw_predictions["event_name"] = raw_predictions["classification"].map(event_names)
     raw_predictions.reset_index().rename(columns={"index": "frame"})[

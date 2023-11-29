@@ -93,17 +93,16 @@ def evaluate(model, test_loader, criterion, device):
     return running_loss / len(test_loader), 100.0 * correct / total
 
 
-def train(train_dir, labels_file, checkpoint_dir):
+def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
     # Load paths and labels
-    image_folder = train_dir
+    image_folder = frames_dir
     labels = []
 
     with open(labels_file, "r") as f:
         data = json.load(f)
         labels = generate_label_list(data[0]["events"])  # TEMP HACK
 
-    screen_recordings_dir = os.path.join(os.path.dirname(labels_file), "screen_recordings")
-    video_path = os.path.join(screen_recordings_dir, data[0]["filename"])
+    video_path = os.path.join(recordings_dir, data[0]["filename"])
     logger.info(f"Extracting frames from video: {video_path}")
     extract_frames_from_video(video_path, image_folder)
 
