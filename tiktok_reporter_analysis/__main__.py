@@ -29,7 +29,7 @@ if __name__ == "__main__":
         default="./data/training_data/screen_recordings",
     )
     train_parser.add_argument(
-        "--labels_file", help="path to the labels file", default="./data/training_data/labels.txt"
+        "--labels_file", help="path to the labels file", default="./data/training_data/labels.json"
     )
     train_parser.add_argument("--checkpoint_dir", help="path to the checkpoint directory", default="./data/checkpoints")
 
