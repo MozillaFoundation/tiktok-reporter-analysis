@@ -1,0 +1,7 @@
+0: Not TikTok.  Any frame outside of TikTok app.  Transitions in which TikTok frame is expanding (when launched) or shrinking (when exited) and not full-screen are classified here.  Transitions before the full player UX (like, share, comment buttons, creator and caption) is shown is also classifed here.
+1: TikTok Video player.  Any frame with a video playing full-screen that does not fall into other categories.
+2: Scrolling.  Any frame with video player translated vertically.
+3: Liked video player.  Any video player frame in which like button is red, including while transitioning size in tap animation. NOTE: this does not allow us to distinguish between liking at the moment versus previously liked.
+4: Share.  Any time share panel is at least partly visible.
+5: Why am I seeing this.  Any time About this ad or why am I seeeeing this panel is at least partly visible.
+7: TikTok Video player (ad).  As above but with sponsored tag present.
