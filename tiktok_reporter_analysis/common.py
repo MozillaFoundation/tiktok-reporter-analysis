@@ -230,3 +230,8 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")
     logger.info("Results saved")
+
+
+def multi_modal_from_saved(results_path, testing=False):
+    frames, transcripts = load_frames_and_transcripts(results_path)
+    multi_modal_analysis(frames, results_path, transcripts, testing=testing)
