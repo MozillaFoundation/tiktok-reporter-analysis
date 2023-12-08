@@ -14,6 +14,7 @@ from tiktok_reporter_analysis.common import (
     extract_transcript,
     get_video_files,
     multi_modal_analysis,
+    save_frames_and_transcripts,
     select_frames,
     set_backend,
 )
@@ -21,7 +22,7 @@ from tiktok_reporter_analysis.common import (
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(video_path, checkpoint_path, results_path, testing=False):
+def classify_videos(video_path, checkpoint_path, results_path, testing=False, multimodal=False):
     logger.info(f"Processing screen recordings from {video_path}")
     video_files = get_video_files(video_path)
 
@@ -100,7 +101,10 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False):
 
     selected_frames_dataframe = pd.concat(selected_frames_dataframes)
     logger.info("Frames and transcripts extracted")
-    multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
+    if multimodal:
+        multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
+    else:
+        save_frames_and_transcripts(selected_frames_dataframe, transcripts, results_path)
 
 
 if __name__ == "__main__":
