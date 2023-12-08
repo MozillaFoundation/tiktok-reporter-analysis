@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 from tempfile import NamedTemporaryFile
 
 import numpy as np
@@ -23,6 +24,32 @@ def set_backend():
         device = torch.device("cpu")
     logger.info(f"Using device: {device}")
     return device
+
+
+def save_frames_and_transcripts(frames, transcripts, results_path):
+    logger.info("Saving frames and transcripts")
+    output_path = os.path.join(results_path, "intermediate")
+    os.makedirs(output_path, exist_ok=True)
+    frames["image_mode"] = frames["image"].map(lambda x: x.mode)
+    frames["image_size"] = frames["image"].map(lambda x: x.size)
+    frames["image"] = frames["image"].map(lambda x: x.tobytes())
+    frames.to_parquet(os.path.join(output_path, "frames.parquet.gz"), compression="gzip")
+    with open(os.path.join(output_path, "transcripts.pickle"), "wb") as f:
+        pickle.dump(transcripts, f)
+    logger.info("Frames and transcripts saved")
+
+
+def load_frames_and_transcripts(results_path):
+    logger.info("Loading frames and transcripts")
+    output_path = os.path.join(results_path, "intermediate")
+    frames = pd.read_parquet(os.path.join(output_path, "frames.parquet.gz"))
+    frames["image"] = frames[["image_mode", "image_size", "image"]].apply(
+        lambda x: Image.frombytes(x["image_mode"], tuple(x["image_size"]), x["image"]), axis=1
+    )
+    with open(os.path.join(output_path, "transcripts.pickle"), "rb") as f:
+        transcripts = pickle.load(f)
+    logger.info("Frames and transcripts loaded")
+    return frames, transcripts
 
 
 def get_video_files(video_path):
