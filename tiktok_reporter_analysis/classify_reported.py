@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 
 import pandas as pd
 import whisper
@@ -17,7 +18,7 @@ from tiktok_reporter_analysis.common import (
 logger = logging.getLogger(__name__)
 
 
-def classify_reported(video_path, results_path, testing=False, multimodal=False):
+def classify_reported(video_path, results_path, testing=False, multimodal=False, debug=False):
     logger.info(f"Processing reported videos from {video_path}")
     video_files = get_video_files(video_path)
 
@@ -30,7 +31,10 @@ def classify_reported(video_path, results_path, testing=False, multimodal=False)
     for i, video_file in enumerate(video_files):
         logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
         video_clip = VideoFileClip(video_file)
-        current_frames_dataframe = extract_frames(video_clip, all_frames=False)
+        frames_path = os.path.join(results_path, "frames", os.path.basename(video_file).split(".")[0])
+        current_frames_dataframe = extract_frames(video_clip, frames_path, all_frames=False)
+        if debug:
+            extract_frames(video_clip, frames_path, all_frames=True, debug=debug)
         transcript = extract_transcript(video_clip, whisper_model)
         current_frames_dataframe["video"] = 0
         current_frames_dataframe["video_file"] = video_file

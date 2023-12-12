@@ -43,6 +43,7 @@ if __name__ == "__main__":
     analyze_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     analyze_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
     analyze_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
+    analyze_parser.add_argument("--debug", help="debugging mode (eg. saves frames to disk)", action="store_true")
 
     # create the parser for the "reported" command
     reported_parser = subparsers.add_parser("analyze_reported")
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     reported_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     reported_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
     reported_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
+    reported_parser.add_argument("--debug", help="debugging mode (eg. saves frames to disk)", action="store_true")
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
@@ -70,9 +72,11 @@ if __name__ == "__main__":
     if args.command == "train":
         train(args.frames_dir, args.recordings_dir, args.labels_file, args.checkpoint_dir)
     elif args.command == "analyze_screen_recording":
-        classify_videos(args.video_path, args.checkpoint_path, args.results_path, args.testing, args.multimodal)
+        classify_videos(
+            args.video_path, args.checkpoint_path, args.results_path, args.testing, args.multimodal, args.debug
+        )
     elif args.command == "analyze_reported":
-        classify_reported(args.video_path, args.results_path, args.testing, args.multimodal)
+        classify_reported(args.video_path, args.results_path, args.testing, args.multimodal, args.debug)
     elif args.command == "analyze_multimodal":
         multi_modal_from_saved(args.results_path, args.testing)
     elif args.command == "report":

@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+from concurrent.futures import ThreadPoolExecutor
 from tempfile import NamedTemporaryFile
 
 import numpy as np
@@ -94,7 +95,18 @@ def create_frames_dataframe(frames, frame_timestamps):
     return df
 
 
-def extract_frames(video_clip, all_frames=False):
+def save_frames_to_disk(frames_dataframe, frames_path):
+    os.makedirs(frames_path, exist_ok=True)
+    with ThreadPoolExecutor() as executor:
+        list(
+            executor.map(
+                lambda x: x[1]["image"].save(os.path.join(frames_path, f"frame_{x[0]}.png")),
+                list(frames_dataframe.iterrows()),
+            )
+        )
+
+
+def extract_frames(video_clip, frames_path, all_frames=False, debug=False):
     logger.info("Extracting frames")
     n_frames_in_video = int(video_clip.fps * video_clip.duration)
     frame_timestamps = np.linspace(0, video_clip.duration, n_frames_in_video)
@@ -108,6 +120,9 @@ def extract_frames(video_clip, all_frames=False):
         for time in selected_frames_timestamps
     }
     frames_dataframe = create_frames_dataframe(selected_frames, frame_timestamps)
+    if debug:
+        logger.info("Saving frames to disk")
+        save_frames_to_disk(frames_dataframe, frames_path)
     logger.info("Frames extracted")
     return frames_dataframe
 
