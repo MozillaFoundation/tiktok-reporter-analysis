@@ -3,6 +3,7 @@ data/training_data/screen_recordings/*.mov
 data/training_data/reported_videos/*.mp?
 data/frames/*
 data/training_data/*.mp4
+data/screen_recordings
 data/results/*
 .DS_Store
 data/checkpoints/*
