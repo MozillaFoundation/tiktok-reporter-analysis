@@ -2,12 +2,12 @@ import argparse
 import logging
 import sys
 
-from .classify_reported import classify_reported
-from .classify_videos import classify_videos
-from .common import multi_modal_from_saved
-from .extract_frames import extract_frames_from_video
-from .render_output import generate_html_report
-from .train import train
+from tiktok_reporter_analysis.classify_reported import classify_reported
+from tiktok_reporter_analysis.classify_videos import classify_videos
+from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
+from tiktok_reporter_analysis.multimodal import multi_modal_from_saved
+from tiktok_reporter_analysis.render_output import generate_html_report
+from tiktok_reporter_analysis.train import train
 
 if __name__ == "__main__":
     logger = logging.getLogger("tiktok_reporter_analysis")

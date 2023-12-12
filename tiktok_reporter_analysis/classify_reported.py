@@ -10,10 +10,10 @@ from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
     get_video_files,
-    multi_modal_analysis,
     save_frames_and_transcripts,
     set_backend,
 )
+from tiktok_reporter_analysis.multimodal import multi_modal_analysis
 
 logger = logging.getLogger(__name__)
 
