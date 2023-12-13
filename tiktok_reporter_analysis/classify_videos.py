@@ -13,15 +13,16 @@ from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
     get_video_files,
-    multi_modal_analysis,
+    save_frames_and_transcripts,
     select_frames,
     set_backend,
 )
+from tiktok_reporter_analysis.multimodal import multi_modal_analysis
 
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(video_path, checkpoint_path, results_path, testing=False):
+def classify_videos(video_path, checkpoint_path, results_path, testing=False, multimodal=False, debug=False):
     logger.info(f"Processing screen recordings from {video_path}")
     video_files = get_video_files(video_path)
 
@@ -36,13 +37,8 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False):
     for i, video_file in enumerate(video_files):
         logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
         video_clip = VideoFileClip(video_file)
-        frames_dataframe = extract_frames(video_clip, all_frames=True)
-        if testing:
-            frames_output_path = os.path.join(results_path, "frames_debug")
-            os.makedirs(frames_output_path, exist_ok=True)
-            for index, row in frames_dataframe.iterrows():
-                frame_image = row["image"]
-                frame_image.save(os.path.join(frames_output_path, f"frame_{index}.png"))
+        frames_path = os.path.join(results_path, "frames", os.path.basename(video_file).split(".")[0])
+        frames_dataframe = extract_frames(video_clip, frames_path, all_frames=True, debug=debug)
 
         # analyze screen recordings
         analyze_screen_recording(frames_dataframe, model, device, results_path)
@@ -100,7 +96,10 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False):
 
     selected_frames_dataframe = pd.concat(selected_frames_dataframes)
     logger.info("Frames and transcripts extracted")
-    multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
+    if multimodal:
+        multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
+    else:
+        save_frames_and_transcripts(selected_frames_dataframe, transcripts, results_path)
 
 
 if __name__ == "__main__":
