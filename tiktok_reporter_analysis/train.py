@@ -104,10 +104,11 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
 
     video_path = os.path.join(recordings_dir, data[0]["filename"])
     logger.info(f"Extracting frames from video: {video_path}")
-    extract_frames_from_video(video_path, image_folder)
+    frames_path = os.path.join(image_folder, os.path.basename(video_path).split(".")[0])
+    extract_frames_from_video(video_path, frames_path)
 
     image_files = [
-        os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))
+        os.path.join(frames_path, f) for f in os.listdir(frames_path) if os.path.isfile(os.path.join(frames_path, f))
     ]
     logger.info(f"There are {len(image_files)} files and {len(labels)} labels.")
     image_files.sort()
