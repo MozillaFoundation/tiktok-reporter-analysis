@@ -24,7 +24,7 @@ def extract_frames_from_video(video_path, output_folder):
     cap = VideoFileClip(video_path)
 
     # Extract frames using the method from common.py
-    frames_dataframe = extract_frames(cap, all_frames=True)
+    frames_dataframe = extract_frames(cap, output_folder, all_frames=True, debug=True)
 
     # Save the frames as images
     for index, row in frames_dataframe.iterrows():
