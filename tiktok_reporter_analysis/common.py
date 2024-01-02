@@ -4,6 +4,8 @@ import pickle
 from concurrent.futures import ThreadPoolExecutor
 from tempfile import NamedTemporaryFile
 
+from moviepy.editor import VideoFileClip
+
 import numpy as np
 import pandas as pd
 import torch
@@ -114,14 +116,14 @@ def extract_frames(video_clip, frames_path, all_frames=False, debug=False):
     else:
         selected_frames_timestamps = select_frames(frame_timestamps)
 
-    selected_frames = {
-        np.where(frame_timestamps == time)[0][0]: Image.fromarray(video_clip.get_frame(time))
-        for time in selected_frames_timestamps
-    }
-    frames_dataframe = create_frames_dataframe(selected_frames, frame_timestamps)
-    if debug:
-        logger.info("Saving frames to disk")
-        save_frames_to_disk(frames_dataframe, frames_path)
+    frames_dataframe = pd.DataFrame(columns=["frame", "timestamp", "image"])
+    for time in selected_frames_timestamps:
+        frame_index = np.where(frame_timestamps == time)[0][0]
+        frame_image = Image.fromarray(video_clip.get_frame(time))
+        frames_dataframe = pd.concat([frames_dataframe, pd.DataFrame({"frame": [frame_index], "timestamp": [time], "image": [frame_image]})], ignore_index=True)
+        if debug:
+            logger.info("Saving frame to disk")
+            frame_image.save(os.path.join(frames_path, f"frame_{frame_index}.png"))
     logger.info("Frames extracted")
     return frames_dataframe
 
