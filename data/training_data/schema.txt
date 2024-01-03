@@ -4,4 +4,4 @@
 3: Liked video player.  Any video player frame in which like button is red, including while transitioning size in tap animation. NOTE: this does not allow us to distinguish between liking at the moment versus previously liked.
 4: Share.  Any time share panel is at least partly visible.
 5: Why am I seeing this.  Any time About this ad or why am I seeeeing this panel is at least partly visible.
-7: TikTok Video player (ad).  As above but with sponsored tag present.
+6: TikTok Video player (ad).  As above but with sponsored tag present.

@@ -97,20 +97,28 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
     # Load paths and labels
     image_folder = frames_dir
     labels = []
+    image_files = []
 
     with open(labels_file, "r") as f:
         data = json.load(f)
-        labels = generate_label_list(data[0]["events"])  # TEMP HACK
 
-    video_path = os.path.join(recordings_dir, data[0]["filename"])
-    logger.info(f"Extracting frames from video: {video_path}")
-    extract_frames_from_video(video_path, image_folder)
+    for i in range(len(data)):
+        current_labels = generate_label_list(data[i]["events"])
 
-    image_files = [
-        os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))
-    ]
-    logger.info(f"There are {len(image_files)} files and {len(labels)} labels.")
-    image_files.sort()
+        video_path = os.path.join(recordings_dir, data[i]["filename"])
+        logger.info(f"Extracting frames from video: {video_path}")
+        frames_path = os.path.join(image_folder, os.path.basename(video_path).split(".")[0])
+        extract_frames_from_video(video_path, frames_path)
+
+        current_image_files = [
+            os.path.join(frames_path, f)
+            for f in os.listdir(frames_path)
+            if os.path.isfile(os.path.join(frames_path, f))
+        ]
+        logger.info(f"There are {len(current_image_files)} files and {len(current_labels)} labels.")
+        current_image_files.sort()
+        labels += current_labels
+        image_files += current_image_files
 
     transform = transforms.Compose(
         [
@@ -119,6 +127,7 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
         ]
     )
 
+    logger.info(f"There full dataset has {len(image_files)} files and {len(labels)} labels.")
     full_dataset = CustomDataset(image_files, labels, transform=transform)
 
     train_size = int(0.8 * len(full_dataset))
