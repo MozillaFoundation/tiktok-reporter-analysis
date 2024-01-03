@@ -110,6 +110,7 @@ def save_frames_to_disk(frames_dataframe, frames_path):
 def extract_frames(video_clip, frames_path, all_frames=False, debug=False):
     logger.info("Extracting frames")
     n_frames_in_video = int(video_clip.fps * video_clip.duration)
+    print(f"video_clip.fps={video_clip.fps} and video_clip.duration={video_clip.duration}")
     frame_timestamps = np.linspace(0, video_clip.duration, n_frames_in_video)
     if all_frames:
         selected_frames_timestamps = frame_timestamps
@@ -117,8 +118,10 @@ def extract_frames(video_clip, frames_path, all_frames=False, debug=False):
         selected_frames_timestamps = select_frames(frame_timestamps)
 
     frames_dataframe = pd.DataFrame(columns=["frame", "timestamp", "image"])
+    print(f"There are {len(selected_frames_timestamps)} frames to process")
     for time in selected_frames_timestamps:
         frame_index = np.where(frame_timestamps == time)[0][0]
+        print(f"frame index is {frame_index}")
         frame_image = Image.fromarray(video_clip.get_frame(time))
         frames_dataframe = pd.concat([frames_dataframe, pd.DataFrame({"frame": [frame_index], "timestamp": [time], "image": [frame_image]})], ignore_index=True)
         if debug:
