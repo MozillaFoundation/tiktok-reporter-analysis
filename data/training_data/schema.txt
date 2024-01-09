@@ -5,4 +5,4 @@
 4: Share.  Any time share panel is at least partly visible.
 5: Why am I seeing this.  Any time About this ad or why am I seeeeing this panel is at least partly visible.
 6: TikTok Video player (ad).  As above but with sponsored tag present.
-7: Other TikTok (current examples are feedback form interstitial, onboarding, settings, permissions request, friends tab, comments screen)
+7: Other TikTok (current examples are feedback form interstitial, onboarding, settings, permissions request, friends tab, comments screen, creator info)
