@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 from tempfile import NamedTemporaryFile
 
 import cv2
-import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
@@ -126,7 +125,8 @@ def extract_frames(video_path, frames_path=None):
         ret, frame = cap.read()
         if not ret:
             break
-        frame_image = Image.fromarray(frame)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_image = Image.fromarray(frame_rgb)
         frame_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
         frames_dataframe = pd.concat(
             [
@@ -135,7 +135,6 @@ def extract_frames(video_path, frames_path=None):
             ],
             ignore_index=True
         )
-        print(frame_timestamp)
         if frames_path:
             logger.info("Saving frame to disk")
             frame_image.save(os.path.join(frames_path, f"frame_{frame_index}.png"))
