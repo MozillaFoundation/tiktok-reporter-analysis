@@ -27,7 +27,7 @@ if __name__ == "__main__":
     train_parser.add_argument(
         "--recordings_dir",
         help="path for the training data screen recordings",
-        default="./data/training_data/screen_recordings",
+        default="./data/screen_recordings",
     )
     train_parser.add_argument(
         "--labels_file", help="path to the labels file", default="./data/training_data/labels.json"

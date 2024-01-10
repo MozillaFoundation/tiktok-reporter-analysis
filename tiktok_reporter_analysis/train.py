@@ -138,7 +138,7 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     # full_loader = DataLoader(full_dataset, batch_size=32, shuffle=False)
 
-    model = timm.create_model("vit_tiny_patch16_224", pretrained=True, num_classes=7)
+    model = timm.create_model("vit_tiny_patch16_224", pretrained=True, num_classes=8)
     device = set_backend()
     model.to(device)
 
