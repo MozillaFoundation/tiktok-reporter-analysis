@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 
-from moviepy.editor import VideoFileClip
 
 from tiktok_reporter_analysis.common import extract_frames
 
@@ -20,11 +19,8 @@ def extract_frames_from_video(video_path, output_folder):
             exit(1)
     os.makedirs(output_folder, exist_ok=True)
 
-    # Open the video file
-    cap = VideoFileClip(video_path)
-
     # Extract frames using the method from common.py
-    frames_dataframe = extract_frames(cap, output_folder, all_frames=True, debug=True)
+    frames_dataframe = extract_frames(video_path, output_folder)
 
     logger.info("Frames extraction completed.")
     return frames_dataframe

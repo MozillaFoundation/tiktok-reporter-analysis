@@ -3,7 +3,6 @@ import os
 
 import pandas as pd
 import whisper
-from moviepy.editor import VideoFileClip
 
 from tiktok_reporter_analysis.analyze_screen_recording import (
     analyze_screen_recording,
@@ -36,9 +35,8 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False, mu
     selected_frames_dataframes = []
     for i, video_file in enumerate(video_files):
         logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
-        video_clip = VideoFileClip(video_file)
         frames_path = os.path.join(results_path, "frames", os.path.basename(video_file).split(".")[0])
-        frames_dataframe = extract_frames(video_clip, frames_path, all_frames=True, debug=debug)
+        frames_dataframe = extract_frames(video_file, frames_path, all_frames=True, debug=debug)
 
         # analyze screen recordings
         analyze_screen_recording(frames_dataframe, model, device, results_path)
