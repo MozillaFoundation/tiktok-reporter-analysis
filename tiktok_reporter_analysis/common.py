@@ -4,12 +4,12 @@ import pickle
 from concurrent.futures import ThreadPoolExecutor
 from tempfile import NamedTemporaryFile
 
-from moviepy.editor import VideoFileClip
-
+import cv2
 import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
+from moviepy.editor import VideoFileClip
 
 logger = logging.getLogger(__name__)
 
@@ -107,26 +107,39 @@ def save_frames_to_disk(frames_dataframe, frames_path):
         )
 
 
-def extract_frames(video_clip, frames_path, all_frames=False, debug=False):
+def extract_frames(video_path, frames_path=None):
     logger.info("Extracting frames")
-    n_frames_in_video = int(video_clip.fps * video_clip.duration)
-    print(f"video_clip.fps={video_clip.fps} and video_clip.duration={video_clip.duration}")
-    frame_timestamps = np.linspace(0, video_clip.duration, n_frames_in_video)
-    if all_frames:
-        selected_frames_timestamps = frame_timestamps
-    else:
-        selected_frames_timestamps = select_frames(frame_timestamps)
+    cap = cv2.VideoCapture(video_path)
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    # cv2 can't reliably get FPS or duration, so use moviepy to get duration.
+    # We still use cv2 to extract frames as it's faster.
+    clip = VideoFileClip(video_path)
+    duration = clip.duration
+
+    logger.info(f"video_clip.duration={duration} and frame_count={frame_count}")
 
     frames_dataframe = pd.DataFrame(columns=["frame", "timestamp", "image"])
-    print(f"There are {len(selected_frames_timestamps)} frames to process")
-    for time in selected_frames_timestamps:
-        frame_index = np.where(frame_timestamps == time)[0][0]
+    logger.info(f"There are {frame_count} frames to process")
+    frame_index = 0
+    while True:
         print(f"frame index is {frame_index}")
-        frame_image = Image.fromarray(video_clip.get_frame(time))
-        frames_dataframe = pd.concat([frames_dataframe, pd.DataFrame({"frame": [frame_index], "timestamp": [time], "image": [frame_image]})], ignore_index=True)
-        if debug:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_image = Image.fromarray(frame)
+        frame_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
+        frames_dataframe = pd.concat(
+            [
+                frames_dataframe,
+                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
+            ],
+            ignore_index=True
+        )
+        print(frame_timestamp)
+        if frames_path:
             logger.info("Saving frame to disk")
             frame_image.save(os.path.join(frames_path, f"frame_{frame_index}.png"))
+        frame_index = frame_index + 1
     logger.info("Frames extracted")
     return frames_dataframe
 

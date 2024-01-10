@@ -4,7 +4,6 @@ import os
 
 import pandas as pd
 import whisper
-from moviepy.editor import VideoFileClip
 
 from tiktok_reporter_analysis.common import (
     extract_frames,
@@ -30,9 +29,8 @@ def classify_reported(video_path, results_path, testing=False, multimodal=False,
     frames_dataframes = []
     for i, video_file in enumerate(video_files):
         logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
-        video_clip = VideoFileClip(video_file)
         frames_path = os.path.join(results_path, "frames", os.path.basename(video_file).split(".")[0])
-        current_frames_dataframe = extract_frames(video_clip, frames_path, all_frames=False)
+        current_frames_dataframe = extract_frames(video_file, frames_path, all_frames=False)
         if debug:
             extract_frames(video_clip, frames_path, all_frames=True, debug=debug)
         transcript = extract_transcript(video_clip, whisper_model)
