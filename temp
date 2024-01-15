@@ -1,0 +1,62 @@
+{
+    "name": "Jesse's Study Form",
+      "fields": [
+        {
+          "type": "TextField",
+          "label": "TikTok Link",
+          "multiline": false,
+          "isRequired": true,
+          "description": "Link to TikTok Video to report",
+          "placeholder": "<tiktok link>"
+        },
+        {
+          "max": 5,
+          "step": 1,
+          "type": "Slider",
+          "label": "Slider",
+          "leftLabel": "low",
+          "isRequired": false,
+          "rightLabel": "high",
+          "description": "Severity"
+        },
+        {
+          "type": "TextField",
+          "label": "Comment",
+	  "max_lines": 5
+          "multiline": true,
+          "isRequired": true,
+          "description": "Link to TikTok Video to report",
+          "placeholder": "comment"
+        },
+	{
+        "type": "DropDown",
+        "label": "Category",
+        "options": [
+          {
+            "title": "Category 1"
+          },
+          {
+            "title": "Category 2"
+          },
+          {
+            "title": "Category 3"
+          },
+          {
+            "title": "Category 4"
+          }
+        ],
+        "isRequired": false,
+        "description": "Category",
+        "hasOtherOption": true
+        }
+        {
+          "type": "TextField",
+          "label": "Offscreen mandatory text field",
+          "multiline": false,
+          "isRequired": true,
+          "description": "We want a mandatory text field that's initially offscreen for testing.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.  So I'll put a lot of text here.",
+          "placeholder": "mandatory"
+        }
+      ]
+  }
+
