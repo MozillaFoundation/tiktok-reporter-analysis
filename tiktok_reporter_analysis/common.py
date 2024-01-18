@@ -1,7 +1,6 @@
 import logging
 import os
 import pickle
-from concurrent.futures import ThreadPoolExecutor
 from tempfile import NamedTemporaryFile
 
 import cv2
@@ -94,6 +93,7 @@ def create_frames_dataframe(frames, frame_timestamps):
 
     return df
 
+
 def extract_frames(video_path, frames_path=None):
     logger.info("Extracting frames")
     cap = cv2.VideoCapture(video_path)
@@ -119,9 +119,9 @@ def extract_frames(video_path, frames_path=None):
         frames_dataframe = pd.concat(
             [
                 frames_dataframe,
-                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
+                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]}),
             ],
-            ignore_index=True
+            ignore_index=True,
         )
         if frames_path:
             if not os.path.exists(frames_path):

@@ -20,7 +20,7 @@ def generate_html_report(results_dir):
     events_df["timestamp"] = events_df["timestamp"].apply(lambda x: "{:02d}:{:04.1f}".format(int(x // 60), x % 60))
 
     # Merge on video number
-    merged_df = events_df.merge(descriptions_df[["video_file", "video", "description"]], on="video", how="left")
+    merged_df = events_df.merge(descriptions_df[["video_path", "video", "description"]], on="video", how="left")
 
     # Start the HTML string with headers, styles, and scripts
     html_str = """
@@ -60,6 +60,7 @@ def generate_html_report(results_dir):
     <thead>
     <tr>
         <th>Video File</th>
+        <th>Frame</th>
         <th>Timestamp</th>
         <th>Event Name</th>
         <th>Description</th>
@@ -70,23 +71,25 @@ def generate_html_report(results_dir):
 
     # Group by 'video' and create table rows
     color_flag = True
-    for _, group in merged_df.groupby(["video_file", "video"]):
+    for _, group in merged_df.groupby(["video_path", "video"]):
         rowspan = len(group)
         first_row = group.iloc[0]
         video_class = "video-grey" if color_flag else "video-white"
         other_class = "other-lightblue" if color_flag else "other-lightcoral"
-        video_file_td = f'<td class="{other_class}">{first_row["video_file"]}</td>'
+        video_path_td = f'<td class="{other_class}">{first_row["video_path"]}</td>'
         timestamp_td = f'<td class="{other_class}">{first_row["timestamp"]}</td>'
+        frame_td = f'<td class="{other_class}">{first_row["frame"]}</td>'
         event_name_td = f'<td class="{other_class}">{first_row["event_name"]}</td>'
-        html_str += f"<tr>{video_file_td}{timestamp_td}{event_name_td}"
+        html_str += f"<tr>{video_path_td}{frame_td}{timestamp_td}{event_name_td}"
         description_td = f'<td rowspan="{rowspan}" class="{video_class}">{first_row["description"]}</td></tr>'
         html_str += description_td
 
         for _, row in group.iloc[1:].iterrows():
-            video_file_td = f'<td class="{other_class}">{row["video_file"]}</td>'
+            video_path_td = f'<td class="{other_class}">{row["video_path"]}</td>'
             timestamp_td = f'<td class="{other_class}">{row["timestamp"]}</td>'
+            frame_td = f'<td class="{other_class}">{row["frame"]}</td>'
             event_name_td = f'<td class="{other_class}">{row["event_name"]}</td></tr>'
-            html_str += f"<tr>{video_file_td}{timestamp_td}{event_name_td}"
+            html_str += f"<tr>{video_path_td}{frame_td}{timestamp_td}{event_name_td}"
         color_flag = not color_flag
 
     html_str += "</tbody></table>"

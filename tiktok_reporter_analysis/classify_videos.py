@@ -69,41 +69,39 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False, mu
         # numbers and timestamps with a 'TikTok video player' classification
         video_frames = {
             i: list(
-                df[
-                    (df["video"] == i) & (df["event_name"] == "TikTok video player")
-                ].index,
+                df[(df["video"] == i) & (df["event_name"].isin(["TikTok video player", "Ad Player"]))].index,
             )
             for i in range(0, video_counter + 1)
         }
         video_timestamps = {
-            i: list(
-                df[
-                    (df["video"] == i) & (df["event_name"] == "TikTok video player")
-                ].timestamp
-            )
+            i: list(df[(df["video"] == i) & (df["event_name"].isin(["TikTok video player", "Ad Player"]))].timestamp)
             for i in range(0, video_counter + 1)
         }
-
+        print(video_timestamps)
         frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
 
-        video_start_end_time = {video: [video_timestamps[video][0], video_timestamps[video][-1]] for video in video_timestamps.keys()}
+        video_start_end_time = {
+            video: [video_timestamps[video][0], video_timestamps[video][-1]]
+            for video in video_timestamps
+            if len(video_timestamps[video])
+            >= 2  # In case of bad classification, we can end up with videos with no frames.  They need to be excluded.
+        }
+
         video_clip = VideoFileClip(video_path)
-        for video in video_frames.keys():
+        for video in video_start_end_time.keys():
             logger.info(f"Extracting transcript from video {video+1}/{video_counter+1}")
-            current_clip = video_clip.subclip(
-                video_start_end_time[video][0], video_start_end_time[video][1]
-            )
+            current_clip = video_clip.subclip(video_start_end_time[video][0], video_start_end_time[video][1])
             transcript = extract_transcript(current_clip, whisper_model)
             transcripts[(video_path, video)] = transcript
 
         selected_frames = []
-        for video in video_frames.keys():
+        for video in video_start_end_time.keys():
             frames = [video_frames[video][i] for i in range(len(video_frames[video]))]
             current_frames = select_frames(frames)
             selected_frames += current_frames
 
         selected_frames_dataframe = frames_dataframe.loc[selected_frames]
-        selected_frames_dataframe["video_file"] = video_file
+        selected_frames_dataframe["video_path"] = video_path
         selected_frames_dataframes.append(selected_frames_dataframe)
 
     selected_frames_dataframe = pd.concat(selected_frames_dataframes)
