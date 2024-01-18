@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def load_checkpoint(checkpoint_path, device):
     # Load the model
-    model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=7)
+    model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=8)
 
     # Load the checkpoint
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))
@@ -68,8 +68,9 @@ def analyze_screen_recording(frames_dataframe, model, device, results_path):
         2: "Scrolling",
         3: "Liked video player",
         4: "Sharing",
-        5: "About this ad",
-        6: "Why recommended",
+        5: "Why recommended",
+        6: "Ad Player",
+        7: "Other"
     }
 
     # Convert the list to a pandas DataFrame

@@ -1,7 +1,6 @@
 import logging
 import os
 import pickle
-from concurrent.futures import ThreadPoolExecutor
 from tempfile import NamedTemporaryFile
 
 import cv2
@@ -53,12 +52,12 @@ def load_frames_and_transcripts(results_path):
     return frames, transcripts
 
 
-def get_video_files(video_path):
+def get_video_paths(video_path):
     if os.path.isdir(video_path):
-        video_files = [os.path.join(video_path, f) for f in os.listdir(video_path) if f.endswith(".mp4")]
+        video_paths = [os.path.join(video_path, f) for f in os.listdir(video_path) if f.endswith(".mp4")]
     else:
-        video_files = [video_path]
-    return video_files
+        video_paths = [video_path]
+    return video_paths
 
 
 def select_frames(frames):
@@ -95,17 +94,6 @@ def create_frames_dataframe(frames, frame_timestamps):
     return df
 
 
-def save_frames_to_disk(frames_dataframe, frames_path):
-    os.makedirs(frames_path, exist_ok=True)
-    with ThreadPoolExecutor() as executor:
-        list(
-            executor.map(
-                lambda x: x[1]["image"].save(os.path.join(frames_path, f"frame_{x[0]}.png")),
-                list(frames_dataframe.iterrows()),
-            )
-        )
-
-
 def extract_frames(video_path, frames_path=None):
     logger.info("Extracting frames")
     cap = cv2.VideoCapture(video_path)
@@ -131,13 +119,15 @@ def extract_frames(video_path, frames_path=None):
         frames_dataframe = pd.concat(
             [
                 frames_dataframe,
-                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
+                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]}),
             ],
-            ignore_index=True
+            ignore_index=True,
         )
         if frames_path:
+            if not os.path.exists(frames_path):
+                os.makedirs(frames_path)
             logger.info("Saving frame to disk")
-            frame_image.save(os.path.join(frames_path, f"frame_{frame_index}.png"))
+            frame_image.save(os.path.join(frames_path, f"frame_{frame_index:06d}.png"))
         frame_index = frame_index + 1
     logger.info("Frames extracted")
     return frames_dataframe
