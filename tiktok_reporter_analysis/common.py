@@ -12,13 +12,13 @@ from moviepy.editor import VideoFileClip
 logger = logging.getLogger(__name__)
 
 
-def set_backend():
-    # use_mps = torch.backends.mps.is_available()
+def set_backend(no_mps=False):
+    use_mps = torch.backends.mps.is_available()
 
     # If MPS is available, use it. Otherwise, use CUDA if available, else use CPU
-    # if use_mps:
-    #    device = torch.device("mps")
-    if torch.cuda.is_available():
+    if use_mps and not no_mps:
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")

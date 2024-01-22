@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def load_checkpoint(checkpoint_path, device):
     # Load the model
-    model = timm.create_model("vit_tiny_patch16_224", pretrained=False, num_classes=8)
+    model = timm.create_model("vit_large_patch16_224", pretrained=False, num_classes=8)
 
     # Load the checkpoint
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))

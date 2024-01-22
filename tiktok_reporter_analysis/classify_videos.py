@@ -30,7 +30,8 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False, mu
     logger.info("Loading frame classification and whisper models")
     device = set_backend()
     model = load_checkpoint(checkpoint_path, device)
-    whisper_model = whisper.load_model("base", device=device)
+    whisper_device = set_backend(no_mps=True)
+    whisper_model = whisper.load_model("base", device=whisper_device)
     logger.info("Frame classification and whisper models loaded")
 
     transcripts = {}
