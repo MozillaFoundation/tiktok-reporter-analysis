@@ -5,6 +5,8 @@ import os
 import pandas as pd
 import whisper
 
+from moviepy.editor import VideoFileClip
+
 from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
@@ -19,25 +21,24 @@ logger = logging.getLogger(__name__)
 
 def classify_reported(video_path, results_path, testing=False, multimodal=False, debug=False):
     logger.info(f"Processing reported videos from {video_path}")
-    video_files = get_video_files(video_path)
+    video_paths = get_video_paths(video_path)
 
     logger.info("Loading whisper model")
-    whisper_model = whisper.load_model("base", device=set_backend())
+    whisper_model = whisper.load_model("base", device=set_backend(no_mps=True))
     logger.info("Whisper model loaded")
 
     transcripts = {}
     frames_dataframes = []
-    for i, video_file in enumerate(video_files):
-        logger.info(f"Processing video {i+1}/{len(video_files)}: {video_file}")
-        frames_path = os.path.join(results_path, "frames", os.path.basename(video_file).split(".")[0])
-        current_frames_dataframe = extract_frames(video_file, frames_path, all_frames=False)
-        if debug:
-            extract_frames(video_clip, frames_path, all_frames=True, debug=debug)
-        transcript = extract_transcript(video_clip, whisper_model)
+    for i, video_path in enumerate(video_paths):
+        logger.info(f"Processing video {i+1}/{len(video_paths)}: {video_path}")
+        frames_path = os.path.join(results_path, "frames", os.path.basename(video_path).split(".")[0])
+        current_frames_dataframe = extract_frames(video_path, frames_path if debug else None)
+        with VideoFileClip(video_path) as video_clip:
+            transcript = extract_transcript(video_clip, whisper_model)
         current_frames_dataframe["video"] = 0
-        current_frames_dataframe["video_file"] = video_file
+        current_frames_dataframe["video_path"] = video_path
         frames_dataframes.append(current_frames_dataframe)
-        transcripts[(video_file, 0)] = transcript
+        transcripts[(video_path, i)] = transcript
 
     frames_dataframe = pd.concat(frames_dataframes)
     logger.info("Frames and transcripts extracted")

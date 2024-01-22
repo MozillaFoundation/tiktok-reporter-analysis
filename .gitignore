@@ -5,6 +5,7 @@ data/frames/*
 data/training_data/*.mp4
 data/screen_recordings
 data/results/*
+data/videos/*
 .DS_Store
 data/checkpoints/*
 *.csv
