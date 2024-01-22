@@ -73,7 +73,7 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
 
     logger.info("Loading multimodal model")
-    device = set_backend()
+    device = set_backend(no_mps=True)
     if testing:
         checkpoint = "HuggingFaceM4/tiny-random-idefics"
     else:
