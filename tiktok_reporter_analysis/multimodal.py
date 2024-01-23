@@ -14,7 +14,7 @@ from tiktok_reporter_analysis.common import (
 logger = logging.getLogger(__name__)
 
 
-def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
+def create_prompts(frames, videos, prompt, transcripts=None):
     prompts = []
     for video_path, video in videos:
         current_frames = frames.loc[
@@ -23,23 +23,13 @@ def create_prompts(frames, videos, system_prompt, prompt, transcripts=None):
         image1 = current_frames[0]
         image2 = current_frames[1]
 
-        if transcripts:
-            CURRENT_PROMPT = (
-                prompt
-                + " The following line is a audio transcript to give some more context.\n"
-                + transcripts[(video_path, video)]["text"]
-            )
-        else:
-            CURRENT_PROMPT = prompt
-
         prompts += [
-            system_prompt
-            + [
-                "\nUser:",
+            [
+                "\nUser:\n",
+                prompt,
                 image1,
                 image2,
-                CURRENT_PROMPT,
-                "<end_of_utterance>",
+                ("Transcript: " + transcripts[(video_path, video)]["text"]) if transcripts else "" "<end_of_utterance>",
                 "\nAssistant:",
             ],
         ]
@@ -61,13 +51,16 @@ def generate_batch(prompts, model, processor, device):
     return generated_text
 
 
-def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
+def multi_modal_analysis(
+    frames,
+    results_path,
+    prompt_file,
+    transcripts=None,
+    testing=False,
+):
     logger.info("Running multimodal analysis")
-    with open("./tiktok_reporter_analysis/prompts/idefics_system_prompt.txt", "r") as f:
-        SYSTEM_PROMPT = f.readlines()
-    SYSTEM_PROMPT[-1] = SYSTEM_PROMPT[-1][:-1]  # Remove EOF newline
 
-    with open("./tiktok_reporter_analysis/prompts/idefics_prompt.txt", "r") as f:
+    with open(prompt_file, "r") as f:
         PROMPT = f.read()[:-1]
 
     frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
@@ -93,8 +86,8 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
     for batch in range(n_batches):
         logger.info(f"Generating for batch {batch + 1} of {n_batches}")
         current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
-        current_batch_transcripts = {video_file: transcripts[video_file] for video_file in current_batch_videos}
-        prompts = create_prompts(frames, current_batch_videos, SYSTEM_PROMPT, PROMPT, current_batch_transcripts)
+        current_batch_transcripts = {video_file: transcripts[video_file[0]] for video_file in current_batch_videos}
+        prompts = create_prompts(frames, current_batch_videos, PROMPT, current_batch_transcripts)
         generated_text += generate_batch(prompts, model, processor, device)
 
     logger.info("Saving results")
@@ -111,9 +104,9 @@ def multi_modal_analysis(frames, results_path, transcripts=None, testing=False):
                 for video_path, video in videos
             ],
             "description": [
-                generated_text[video].split("\n")[16:][-1].split("Assistant: ")[-1] for video in range(len(videos))
+                generated_text[video].split("\n")[3:][-1].split("Assistant: ")[-1] for video in range(len(videos))
             ],
-            "audio_transcript": [transcripts[(video_path, video)]["text"] for video_path, video in videos],
+            "audio_transcript": [transcripts[video_path]["text"] for video_path, video in videos],
         }
     )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))

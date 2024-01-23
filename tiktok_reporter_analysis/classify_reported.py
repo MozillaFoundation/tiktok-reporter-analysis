@@ -19,7 +19,7 @@ from tiktok_reporter_analysis.multimodal import multi_modal_analysis
 logger = logging.getLogger(__name__)
 
 
-def classify_reported(video_path, results_path, testing=False, multimodal=False, debug=False):
+def classify_reported(video_path, results_path, prompt_file, testing=False, multimodal=False, debug=False):
     logger.info(f"Processing reported videos from {video_path}")
     video_paths = get_video_paths(video_path)
 
@@ -38,12 +38,12 @@ def classify_reported(video_path, results_path, testing=False, multimodal=False,
         current_frames_dataframe["video"] = 0
         current_frames_dataframe["video_path"] = video_path
         frames_dataframes.append(current_frames_dataframe)
-        transcripts[(video_path, i)] = transcript
+        transcripts[video_path] = transcript
 
     frames_dataframe = pd.concat(frames_dataframes)
     logger.info("Frames and transcripts extracted")
     if multimodal:
-        multi_modal_analysis(frames_dataframe, results_path, transcripts=transcripts, testing=testing)
+        multi_modal_analysis(frames_dataframe, results_path, prompt_file, transcripts=transcripts, testing=testing)
     else:
         save_frames_and_transcripts(frames_dataframe, transcripts, results_path)
 
