@@ -55,6 +55,9 @@ if __name__ == "__main__":
     reported_parser.add_argument(
         "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
     )
+    reported_parser.add_argument(
+        "--model", help="MOdel to use (llama or gpt)", default="gpt"
+    )
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
@@ -80,7 +83,7 @@ if __name__ == "__main__":
         )
     elif args.command == "analyze_reported":
         classify_reported(
-            args.video_path, args.results_path, args.prompt_file, args.testing, args.multimodal, args.debug
+            args.video_path, args.results_path, args.prompt_file, args.model, args.testing, args.multimodal, args.debug
         )
     elif args.command == "analyze_multimodal":
         multi_modal_from_saved(args.results_path, args.testing)
