@@ -52,6 +52,9 @@ if __name__ == "__main__":
     reported_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
     reported_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
     reported_parser.add_argument("--debug", help="debugging mode (eg. saves frames to disk)", action="store_true")
+    reported_parser.add_argument(
+        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
+    )
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
@@ -76,7 +79,9 @@ if __name__ == "__main__":
             args.video_path, args.checkpoint_path, args.results_path, args.testing, args.multimodal, args.debug
         )
     elif args.command == "analyze_reported":
-        classify_reported(args.video_path, args.results_path, args.testing, args.multimodal, args.debug)
+        classify_reported(
+            args.video_path, args.results_path, args.prompt_file, args.testing, args.multimodal, args.debug
+        )
     elif args.command == "analyze_multimodal":
         multi_modal_from_saved(args.results_path, args.testing)
     elif args.command == "report":
