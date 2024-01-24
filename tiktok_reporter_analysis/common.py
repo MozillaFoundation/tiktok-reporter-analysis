@@ -59,8 +59,7 @@ def get_video_paths(video_path):
         video_paths = [video_path]
     return video_paths
 
-
-def select_frames(frames):
+def select_frames_int(frames):
     min_frame = min(frames)
     max_frame = max(frames)
     # Calculate one third and two thirds of the way between min and max
@@ -69,6 +68,16 @@ def select_frames(frames):
     # Find the frames that are closest to one third and two thirds of the way between min and max
     current_frames = [min(frames, key=lambda x: abs(x - one_third)), min(frames, key=lambda x: abs(x - two_thirds))]
     return current_frames
+
+def select_frames(frames):
+    min_frame = min(frames.frame)
+    max_frame = max(frames.frame)
+    # Calculate one third and two thirds of the way between min and max
+    one_third = min_frame + (max_frame - min_frame) // 3
+    two_thirds = min_frame + 2 * (max_frame - min_frame) // 3
+    # Find the frames that are closest to one third and two thirds of the way between min and max
+    current_frames = [min(frames.frame, key=lambda x: abs(x - one_third)), min(frames.frame, key=lambda x: abs(x - two_thirds))]
+    return frames[frames.frame.isin(current_frames)]
 
 
 def format_ms_timestamp(ms_timestamp_series):
