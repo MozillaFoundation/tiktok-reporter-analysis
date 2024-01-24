@@ -13,7 +13,7 @@ from tiktok_reporter_analysis.common import (
     extract_transcript,
     get_video_paths,
     save_frames_and_transcripts,
-    select_frames,
+    select_frames_int,
     set_backend,
 )
 from tiktok_reporter_analysis.multimodal import multi_modal_analysis
@@ -23,13 +23,11 @@ from moviepy.editor import VideoFileClip
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(video_path, checkpoint_path, results_path, testing=False, multimodal=False, debug=False):
+def classify_videos(video_path, checkpoint_path, prompt_file, model, results_path, testing=False, multimodal=False, debug=False):
     logger.info(f"Processing screen recordings from {video_path}")
     video_paths = get_video_paths(video_path)
 
     logger.info("Loading frame classification and whisper models")
-    device = set_backend()
-    model = load_checkpoint(checkpoint_path, device)
     whisper_device = set_backend(no_mps=True)
     whisper_model = whisper.load_model("base", device=whisper_device)
     logger.info("Frame classification and whisper models loaded")
@@ -42,7 +40,7 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False, mu
         frames_dataframe = extract_frames(video_path, frames_path)
 
         # analyze screen recordings
-        analyze_screen_recording(frames_dataframe, model, device, results_path)
+        analyze_screen_recording(frames_dataframe, results_path, checkpoint_path)
 
         # Load the CSV file
         df = pd.read_csv(results_path + "/frame_classification_data.csv")
@@ -98,7 +96,7 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False, mu
         selected_frames = []
         for video in video_start_end_time.keys():
             frames = [video_frames[video][i] for i in range(len(video_frames[video]))]
-            current_frames = select_frames(frames)
+            current_frames = select_frames_int(frames)
             selected_frames += current_frames
 
         selected_frames_dataframe = frames_dataframe.loc[selected_frames]
@@ -108,7 +106,9 @@ def classify_videos(video_path, checkpoint_path, results_path, testing=False, mu
     selected_frames_dataframe = pd.concat(selected_frames_dataframes)
     logger.info("Frames and transcripts extracted")
     if multimodal:
-        multi_modal_analysis(selected_frames_dataframe, results_path, transcripts=transcripts, testing=testing)
+        multi_modal_analysis(
+            selected_frames_dataframe, results_path, prompt_file, model, transcripts=transcripts, testing=testing
+        )
     else:
         save_frames_and_transcripts(selected_frames_dataframe, transcripts, results_path)
 

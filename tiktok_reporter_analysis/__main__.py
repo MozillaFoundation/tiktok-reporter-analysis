@@ -44,6 +44,10 @@ if __name__ == "__main__":
     analyze_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
     analyze_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
     analyze_parser.add_argument("--debug", help="debugging mode (eg. saves frames to disk)", action="store_true")
+    analyze_parser.add_argument(
+        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
+    )
+    analyze_parser.add_argument("--model", help="MOdel to use (llama or gpt)", default="gpt")
 
     # create the parser for the "reported" command
     reported_parser = subparsers.add_parser("analyze_reported")
@@ -55,9 +59,7 @@ if __name__ == "__main__":
     reported_parser.add_argument(
         "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
     )
-    reported_parser.add_argument(
-        "--model", help="MOdel to use (llama or gpt)", default="gpt"
-    )
+    reported_parser.add_argument("--model", help="MOdel to use (llama or gpt)", default="gpt")
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
@@ -79,7 +81,14 @@ if __name__ == "__main__":
         train(args.frames_dir, args.recordings_dir, args.labels_file, args.checkpoint_dir)
     elif args.command == "analyze_screen_recording":
         classify_videos(
-            args.video_path, args.checkpoint_path, args.results_path, args.testing, args.multimodal, args.debug
+            args.video_path,
+            args.checkpoint_path,
+            args.prompt_file,
+            args.model,
+            args.results_path,
+            args.testing,
+            args.multimodal,
+            args.debug,
         )
     elif args.command == "analyze_reported":
         classify_reported(

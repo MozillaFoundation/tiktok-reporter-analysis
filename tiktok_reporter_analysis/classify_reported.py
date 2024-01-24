@@ -10,6 +10,7 @@ from moviepy.editor import VideoFileClip
 from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
+    select_frames,
     get_video_paths,
     save_frames_and_transcripts,
     set_backend,
@@ -32,18 +33,22 @@ def classify_reported(video_path, results_path, prompt_file, model, testing=Fals
     for i, video_path in enumerate(video_paths):
         logger.info(f"Processing video {i+1}/{len(video_paths)}: {video_path}")
         frames_path = os.path.join(results_path, "frames", os.path.basename(video_path).split(".")[0])
-        current_frames_dataframe = extract_frames(video_path, frames_path if debug else None)
+        current_frames_dataframe = select_frames(extract_frames(video_path, frames_path if debug else None))
         with VideoFileClip(video_path) as video_clip:
             transcript = extract_transcript(video_clip, whisper_model)
         current_frames_dataframe["video"] = 0
         current_frames_dataframe["video_path"] = video_path
         frames_dataframes.append(current_frames_dataframe)
-        transcripts[(video_path, 0)] = transcript # For reported videos there is only one video per path, so give it number 0
+        transcripts[
+            (video_path, 0)
+        ] = transcript  # For reported videos there is only one video per path, so give it number 0
 
     frames_dataframe = pd.concat(frames_dataframes)
     logger.info("Frames and transcripts extracted")
     if multimodal:
-        multi_modal_analysis(frames_dataframe, results_path, prompt_file, model, transcripts=transcripts, testing=testing)
+        multi_modal_analysis(
+            frames_dataframe, results_path, prompt_file, model, transcripts=transcripts, testing=testing
+        )
     else:
         save_frames_and_transcripts(frames_dataframe, transcripts, results_path)
 
