@@ -6,7 +6,6 @@ import whisper
 
 from tiktok_reporter_analysis.analyze_screen_recording import (
     analyze_screen_recording,
-    load_checkpoint,
 )
 from tiktok_reporter_analysis.common import (
     extract_frames,
@@ -23,7 +22,9 @@ from moviepy.editor import VideoFileClip
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(video_path, checkpoint_path, prompt_file, model, results_path, testing=False, multimodal=False, debug=False):
+def classify_videos(
+    video_path, checkpoint_path, prompt_file, model, results_path, testing=False, multimodal=False, debug=False
+):
     logger.info(f"Processing screen recordings from {video_path}")
     video_paths = get_video_paths(video_path)
 
@@ -76,7 +77,6 @@ def classify_videos(video_path, checkpoint_path, prompt_file, model, results_pat
             i: list(df[(df["video"] == i) & (df["event_name"].isin(["TikTok video player", "Ad Player"]))].timestamp)
             for i in range(0, video_counter + 1)
         }
-        print(video_timestamps)
         frames_dataframe = pd.merge(frames_dataframe, df[["frame", "video"]], on="frame")
 
         video_start_end_time = {

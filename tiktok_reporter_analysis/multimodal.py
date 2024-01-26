@@ -7,6 +7,7 @@ import torch
 
 import base64
 from openai import OpenAI
+import ollama
 
 from transformers import AutoProcessor, IdeficsForVisionText2Text
 
@@ -77,6 +78,27 @@ def create_prompt_for_gpt(frames, video_path, video_number, prompt, transcript=N
     return prompt_messages
 
 
+def create_prompt_for_llava(frames, video_path, video_number, prompt, transcript=None):
+    current_frames = frames.loc[
+        (frames["video"] == video_number) & (frames["video_path"] == video_path), "image"
+    ].to_list()
+    image1 = current_frames[0]
+    image2 = current_frames[1]
+    buf1 = io.BytesIO()
+    image1.save(buf1, format="PNG")
+    buf2 = io.BytesIO()
+    image2.save(buf2, format="PNG")
+    prompt_messages = [
+        {
+            "role": "user",
+            "content": prompt + (transcript["text"] if transcript else ""),
+            "images": [buf1.read(), buf2.read()],
+        },
+    ]
+
+    return prompt_messages
+
+
 def generate_batch(prompts, model, processor, device):
     # --batched mode
     inputs = processor(prompts, add_end_of_utterance_token=False, return_tensors="pt").to(device)
@@ -101,10 +123,34 @@ def multi_modal_analysis(
     testing=False,
 ):
     frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
-    if model == "llama":
-        output_df = multi_modal_analysis_llama(frames, results_path, prompt_file, transcripts, testing)
+    logger.info("Running multimodal analysis")
+
+    with open(prompt_file, "r") as f:
+        PROMPT = f.read()[:-1]
+
+    videos = frames.set_index(["video_path", "video"]).index.unique()
+    if model == "idefics":
+        generated_text = multi_modal_analysis_idefics(frames, results_path, PROMPT, transcripts, testing, videos)
     elif model == "gpt":
-        output_df = multi_modal_analysis_gpt(frames, results_path, prompt_file, transcripts, testing)
+        generated_text = multi_modal_analysis_gpt(frames, results_path, PROMPT, transcripts, testing, videos)
+    elif model == "llava":
+        generated_text = multi_modal_analysis_llava(frames, results_path, PROMPT, transcripts, testing, videos)
+    output_df = pd.DataFrame(
+        {
+            "video_path": [video_path for video_path, _ in videos],
+            "video": [video for _, video in videos],
+            "frame1": [
+                frames.loc[(frames["video"] == video) & (frames["video_path"] == video_path), "frame"].iloc[0]
+                for video_path, video in videos
+            ],
+            "frame2": [
+                frames.loc[(frames["video"] == video) & (frames["video_path"] == video_path), "frame"].iloc[1]
+                for video_path, video in videos
+            ],
+            "description": [generated_text[video] for video in videos],
+            "audio_transcript": [transcripts[(video_path, video)]["text"] for video_path, video in videos],
+        }
+    )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
     output_df["timestamp2"] = format_ms_timestamp(output_df["frame2"].map(frames_to_timestamps))
     output_df = output_df[
@@ -115,18 +161,34 @@ def multi_modal_analysis(
     logger.info("Results saved")
 
 
-def multi_modal_analysis_llama(
+def multi_modal_analysis_llava(
     frames,
     results_path,
-    prompt_file,
+    PROMPT,
     transcripts=None,
     testing=False,
+    videos=None,
 ):
-    logger.info("Running multimodal analysis")
+    results = []
+    for video in videos:
+        current_video = video
+        current_transcript = transcripts[current_video]
+        prompt = create_prompt_for_llava(frames, current_video[0], current_video[1], PROMPT, current_transcript)
+        response = ollama.chat(model="llama2", messages=prompt)
+        results.append((video, response["message"]["content"]))
+    logger.info("Saving results")
 
-    with open(prompt_file, "r") as f:
-        PROMPT = f.read()[:-1]
+    return {video: r for video, r in results}
 
+
+def multi_modal_analysis_idefics(
+    frames,
+    results_path,
+    PROMPT,
+    transcripts=None,
+    testing=False,
+    videos=None,
+):
     logger.info("Loading multimodal model")
     device = set_backend(no_mps=True)
     if testing:
@@ -141,7 +203,6 @@ def multi_modal_analysis_llama(
     logger.info("Multimodal model loaded")
 
     prompts = []
-    videos = frames.set_index(["video_path", "video"]).index.unique()
     batch_size = 8
     n_batches = len(videos) // batch_size + 1
     generated_text = []
@@ -150,45 +211,22 @@ def multi_modal_analysis_llama(
         current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
         current_batch_transcripts = {video_file: transcripts[video_file] for video_file in current_batch_videos}
         prompts = create_prompts_for_llama(frames, current_batch_videos, PROMPT, current_batch_transcripts)
-        generated_text += generate_batch(prompts, model, processor, device)
+        generated_text += zip(current_batch_videos, generate_batch(prompts, model, processor, device))
 
     logger.info("Saving results")
-    output_df = pd.DataFrame(
-        {
-            "video_path": [video_path for video_path, _ in videos],
-            "video": [video for _, video in videos],
-            "frame1": [
-                frames.loc[(frames["video"] == video) & (frames["video_path"] == video_path), "frame"].iloc[0]
-                for video_path, video in videos
-            ],
-            "frame2": [
-                frames.loc[(frames["video"] == video) & (frames["video_path"] == video_path), "frame"].iloc[1]
-                for video_path, video in videos
-            ],
-            "description": [
-                generated_text[video].split("\n")[3:][-1].split("Assistant: ")[-1] for video in range(len(videos))
-            ],
-            "audio_transcript": [transcripts[(video_path, video)]["text"] for video_path, video in videos],
-        }
-    )
-    return output_df
+    return {video: g.split("\n")[3:][-1].split("Assistant: ")[-1] for video, g in generated_text}
 
 
 def multi_modal_analysis_gpt(
     frames,
     results_path,
-    prompt_file,
+    PROMPT,
     transcripts=None,
     testing=False,
+    videos=None,
 ):
-    logger.info("Running multimodal analysis")
-
-    with open(prompt_file, "r") as f:
-        PROMPT = f.read()[:-1]
-
     logger.info("Using OpenAI API")
     results = []
-    videos = frames.set_index(["video_path", "video"]).index.unique()
     for video in videos:
         current_video = video
         current_transcript = transcripts[current_video]
@@ -198,26 +236,10 @@ def multi_modal_analysis_gpt(
             model="gpt-4-vision-preview",
             max_tokens=2500,
         )
-        results.append(result.choices[0].message.content)
-    print(results)
+        results.append((video, result.choices[0].message.content))
     logger.info("Saving results")
-    output_df = pd.DataFrame(
-        {
-            "video_path": [video_path for video_path, _ in videos],
-            "video": [video for _, video in videos],
-            "frame1": [
-                frames.loc[(frames["video"] == video) & (frames["video_path"] == video_path), "frame"].iloc[0]
-                for video_path, video in videos
-            ],
-            "frame2": [
-                frames.loc[(frames["video"] == video) & (frames["video_path"] == video_path), "frame"].iloc[1]
-                for video_path, video in videos
-            ],
-            "description": [results[i] for i in range(len(videos))],
-            "audio_transcript": [transcripts[(video_path, video)]["text"] for video_path, video in videos],
-        }
-    )
-    return output_df
+
+    return {video: r for video, r in results}
 
 
 def multi_modal_from_saved(results_path, testing=False):
