@@ -47,7 +47,7 @@ if __name__ == "__main__":
     analyze_parser.add_argument(
         "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
     )
-    analyze_parser.add_argument("--model", help="MOdel to use (llama or gpt)", default="gpt")
+    analyze_parser.add_argument("--model", help="Model to use (idefics, llava, or gpt)", default="gpt")
 
     # create the parser for the "reported" command
     reported_parser = subparsers.add_parser("analyze_reported")
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     reported_parser.add_argument(
         "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
     )
-    reported_parser.add_argument("--model", help="MOdel to use (llama or gpt)", default="gpt")
+    reported_parser.add_argument("--model", help="Model to use (idefics, llava, or gpt)", default="gpt")
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
