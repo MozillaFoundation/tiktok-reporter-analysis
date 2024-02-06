@@ -1,0 +1,5 @@
+Here are two frames from a tiktok video.  The transcript of the video is here if available:
+
+"{transcript}"
+
+ Based on the frames, and the transcript (if it is available), classify the video into one of the categories in this list ['dance_music', 'comedy_drama', 'category', 'entertaiment', 'society', 'cars', 'lifestyle', 'relationships', 'pets_nature', 'sport', 'fashion', 'informative']. Don't talk about the frames themselves, instead infer what is happening in the whole video based on the frames.  Remember that the transcript is transcribed using a whisper model and may contain errors.  It's possible that there is no transcript, so please don't ask if it is missing.  Please think step by step explaining your reasoning considering different possible categories, but finish your answer with a line containing just "category: " and the category that fits best.  Please answer in English.

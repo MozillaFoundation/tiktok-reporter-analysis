@@ -24,13 +24,8 @@ with open("tiktok_reporter_analysis/prompts/openai_api_key.txt", "r") as key_fil
     OPENAI_API_KEY = key_file.read().strip()
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
-client = OpenAI(
-    # This is the default and can be omitted
-    api_key=os.environ.get("OPENAI_API_KEY"),
-)
 
-
-def create_prompts_for_llama(frames, videos, prompt, transcripts=None):
+def create_prompts_for_idefics(frames, videos, prompt, transcripts=None):
     prompts = []
     for video_path, video in videos:
         current_frames = frames.loc[
@@ -85,14 +80,98 @@ def create_prompt_for_llava(frames, video_path, video_number, prompt, transcript
     image1 = current_frames[0]
     image2 = current_frames[1]
     buf1 = io.BytesIO()
-    image1.save(buf1, format="PNG")
     buf2 = io.BytesIO()
+    # video_path_filename = os.path.splitext(os.path.basename(video_path))[0]
+    # image1_filename = os.path.join("data/results", f"{video_path_filename}_image1.png")
+    # image1.save(image1_filename, format="PNG")
+    image1.save(buf1, format="PNG")
+    # image2_filename = os.path.join("data/results", f"{video_path_filename}_image2.png")
+    # image2.save(image2_filename, format="PNG")
     image2.save(buf2, format="PNG")
+
     prompt_messages = [
         {
             "role": "user",
-            "content": prompt + (transcript["text"] if transcript else ""),
-            "images": [buf1.read(), buf2.read()],
+            "content": prompt.format(
+                transcript=(
+                    "Make sure you don't miss these unbelievable astronomical events on June, because on "
+                    "June 4th is the first full moon of the month, also known as the Strawberry Moon. And "
+                    "on the same day is the best time to view Venus since it will be at its highest point "
+                    "above the horizon in the evening sky. On June 7th to 10th, the daytime area-tid meteor "
+                    "shower producing its peak rate of meteors. On June 12th to 13th, Venus can be seen in or "
+                    "very near the Beehive cluster. A good pair of binoculars should be enough to see this "
+                    "rare event. On June 17th you can see a stunning planetary alignment. Saturn, Neptune, "
+                    "Jupiter, Mercury and Uranus will line up about an hour before sunrise. And the even "
+                    "cooler thing is, you can see this rare event with your naked eye. On June 18th is New "
+                    "Moon. That means the moon will not be visible in the night sky. This is also the best "
+                    "time of the month to observe faint objects such as galaxies and star clusters, because "
+                    "there is no moon light to interfere. And now don't forget to send this video to your "
+                    "friends so that they don't miss these beautiful events."
+                )
+            ),
+            "images": [
+                "tiktok_reporter_analysis/prompts/7240137209767120155inf_image1.png",
+                "tiktok_reporter_analysis/prompts/7240137209767120155inf_image2.png",
+            ],
+        },
+        {
+            "role": "assistant",
+            "content": (
+                "The video appears to be an informative piece about astronomical events scheduled for June. "
+                "It mentions various celestial occurrences such as the Strawberry Moon, Venus's position in "
+                "relation to a star cluster, meteor showers, and planetary alignments. The content of the "
+                "frames is consistent with this description, featuring images related to space and astronomy.\n"
+                "category: informative"
+            ),
+        },
+        {
+            "role": "user",
+            "content": prompt.format(
+                transcript=(
+                    "Mit seit einer halben Stunde so schlecht und schwindlich, ja keiner an mir was los ist, ich "
+                    "hab mich schon Cola geholt, weil ich gehört, davon muss man sich übergeben. Ich meine, jetzt "
+                    "sind schon etwas, das heißt, ich hatte das noch, ich bin jetzt eigentlich nie schlecht, nie "
+                    "schwindlich. Ich hab keiner an was, was für ein Unruhmann ist schon überlegt. Ich weiß, dass "
+                    "das Ding, ich muss ein bisschen leise reden, weil Henrys unten und ich will ihn nicht "
+                    "enttäuschen. Und ja, ich hab immer so schaut, auch mal mal an. Ganz mir ist so schlecht. Ich "
+                    "hab mir wirklich noch nie gewünscht, dass ich mich beigeben muss, außer jetzt. 5 Minuten. 1. "
+                    "Schade, ich hätte mich echt gefreut."
+                )
+
+            ),
+            "images": [
+                "tiktok_reporter_analysis/prompts/7254948333599460635rel_image1.png",
+                "tiktok_reporter_analysis/prompts/7254948333599460635rel_image2.png",
+            ],
+        },
+        {
+            "role": "assistant",
+            "content": (
+                "The woman seems to be discussing a pregnancy and relationship related situation.\n"
+                "category: relationships",
+            )
+        },
+        {
+            "role": "user",
+            "content": prompt.format(transcript=transcript["text"] if transcript else ""),
+            "images": [buf1.getvalue(), buf2.getvalue()],
+        },
+    ]
+
+    return prompt_messages
+
+
+def create_prompt_for_llama(description):
+    prompt_messages = [
+        {
+            "role": "user",
+            "content": (
+                "Given the following description, please choose one category from this list: "
+                "['dance_music', 'comedy_drama', 'category', 'entertaiment', 'society', 'cars', "
+                "'lifestyle', 'relationships', 'pets_nature', 'sport', 'fashion', 'informative']. "
+                "Reply with only the category name. The description is: \"{}\""
+            ).format(description)
+
         },
     ]
 
@@ -133,6 +212,10 @@ def multi_modal_analysis(
         generated_text = multi_modal_analysis_idefics(frames, results_path, PROMPT, transcripts, testing, videos)
     elif model == "gpt":
         generated_text = multi_modal_analysis_gpt(frames, results_path, PROMPT, transcripts, testing, videos)
+    elif model == "lmstudio":
+        generated_text = multi_modal_analysis_gpt(
+            frames, results_path, PROMPT, transcripts, testing, videos, "http://localhost:1234/v1"
+        )
     elif model == "llava":
         generated_text = multi_modal_analysis_llava(frames, results_path, PROMPT, transcripts, testing, videos)
     output_df = pd.DataFrame(
@@ -174,6 +257,8 @@ def multi_modal_analysis_llava(
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_llava(frames, current_video[0], current_video[1], PROMPT, current_transcript)
+        response = ollama.chat(model="llava:13b-v1.6", messages=prompt)
+        prompt = create_prompt_for_llama(response["message"]["content"])
         response = ollama.chat(model="llama2", messages=prompt)
         results.append((video, response["message"]["content"]))
     logger.info("Saving results")
@@ -210,21 +295,23 @@ def multi_modal_analysis_idefics(
         logger.info(f"Generating for batch {batch + 1} of {n_batches}")
         current_batch_videos = videos[batch * batch_size : (batch + 1) * batch_size]
         current_batch_transcripts = {video_file: transcripts[video_file] for video_file in current_batch_videos}
-        prompts = create_prompts_for_llama(frames, current_batch_videos, PROMPT, current_batch_transcripts)
+        prompts = create_prompts_for_idefics(frames, current_batch_videos, PROMPT, current_batch_transcripts)
         generated_text += zip(current_batch_videos, generate_batch(prompts, model, processor, device))
 
     logger.info("Saving results")
     return {video: g.split("\n")[3:][-1].split("Assistant: ")[-1] for video, g in generated_text}
 
 
-def multi_modal_analysis_gpt(
-    frames,
-    results_path,
-    PROMPT,
-    transcripts=None,
-    testing=False,
-    videos=None,
-):
+def multi_modal_analysis_gpt(frames, results_path, PROMPT, transcripts=None, testing=False, videos=None, server=None):
+    if server:
+        client = OpenAI(
+            base_url=server,
+            api_key="notneeded",
+        )
+    else:
+        client = OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+        )
     logger.info("Using OpenAI API")
     results = []
     for video in videos:

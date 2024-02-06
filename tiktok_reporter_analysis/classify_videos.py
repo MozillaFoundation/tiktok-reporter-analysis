@@ -30,7 +30,7 @@ def classify_videos(
 
     logger.info("Loading frame classification and whisper models")
     whisper_device = set_backend(no_mps=True)
-    whisper_model = whisper.load_model("base", device=whisper_device)
+    whisper_model = whisper.load_model("large", device=whisper_device)
     logger.info("Frame classification and whisper models loaded")
 
     transcripts = {}
