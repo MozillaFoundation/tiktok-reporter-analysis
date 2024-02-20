@@ -63,10 +63,9 @@ def create_prompt_for_gpt(frames, video_path, video_number, prompt, transcript=N
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": prompt},
+                {"type": "text", "text": prompt.format(transcript=transcript["text"] if transcript else "")},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image1}"}},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image2}"}},
-                {"type": "text", "text": "Transcript: " + transcript["text"] if transcript else ""},
             ],
         }
     ]
@@ -116,7 +115,7 @@ def create_prompt_for_llava(frames, video_path, video_number, prompt, transcript
         },
         {
             "role": "assistant",
-            "content": (
+            "content": "".join(
                 "The video appears to be an informative piece about astronomical events scheduled for June. "
                 "It mentions various celestial occurrences such as the Strawberry Moon, Venus's position in "
                 "relation to a star cluster, meteor showers, and planetary alignments. The content of the "
@@ -137,7 +136,6 @@ def create_prompt_for_llava(frames, video_path, video_number, prompt, transcript
                     "hab mir wirklich noch nie gewünscht, dass ich mich beigeben muss, außer jetzt. 5 Minuten. 1. "
                     "Schade, ich hätte mich echt gefreut."
                 )
-
             ),
             "images": [
                 "tiktok_reporter_analysis/prompts/7254948333599460635rel_image1.png",
@@ -146,10 +144,10 @@ def create_prompt_for_llava(frames, video_path, video_number, prompt, transcript
         },
         {
             "role": "assistant",
-            "content": (
+            "content": "".join(
                 "The woman seems to be discussing a pregnancy and relationship related situation.\n"
                 "category: relationships",
-            )
+            ),
         },
         {
             "role": "user",
@@ -167,11 +165,10 @@ def create_prompt_for_llama(description):
             "role": "user",
             "content": (
                 "Given the following description, please choose one category from this list: "
-                "['dance_music', 'comedy_drama', 'category', 'entertaiment', 'society', 'cars', "
+                "['dance_music', 'comedy_drama', 'entertaiment', 'society', 'cars', "
                 "'lifestyle', 'relationships', 'pets_nature', 'sport', 'fashion', 'informative']. "
-                "Reply with only the category name. The description is: \"{}\""
-            ).format(description)
-
+                'Reply with only the category name from that list. The description is: "{}"'
+            ).format(description),
         },
     ]
 
@@ -253,13 +250,18 @@ def multi_modal_analysis_llava(
     videos=None,
 ):
     results = []
-    for video in videos:
+    # input("Press 'c' to continue...")
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_llava(frames, current_video[0], current_video[1], PROMPT, current_transcript)
-        response = ollama.chat(model="llava:13b-v1.6", messages=prompt)
+        print(f"Creating prompt with transcript length={len(current_transcript['text'])}")
+        print(f"Current video={current_video}")
+        # print(f"Current transcript is \"{current_transcript}\"")
+        response = ollama.chat(model="llava:13b-v1.6", messages=prompt, keep_alive=-1)
         prompt = create_prompt_for_llama(response["message"]["content"])
-        response = ollama.chat(model="llama2", messages=prompt)
+        response = ollama.chat(model="llama2", messages=prompt, keep_alive=-1)
         results.append((video, response["message"]["content"]))
     logger.info("Saving results")
 
@@ -314,16 +316,36 @@ def multi_modal_analysis_gpt(frames, results_path, PROMPT, transcripts=None, tes
         )
     logger.info("Using OpenAI API")
     results = []
-    for video in videos:
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_gpt(frames, current_video[0], current_video[1], PROMPT, current_transcript)
         result = client.chat.completions.create(
             messages=prompt,
             model="gpt-4-vision-preview",
-            max_tokens=2500,
+            max_tokens=500,
         )
-        results.append((video, result.choices[0].message.content))
+
+        prompt = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Given the following text please choose whether to classify the video as 'informative' or 'other'.  Please output nothing but one of those two words.  The text is {result.choices[0].message.content}",
+                    },
+                ],
+            }
+        ]
+        result2 = client.chat.completions.create(
+            messages=prompt,
+            model="gpt-4-vision-preview",
+            max_tokens=500,
+        )
+
+        #results.append((video, (result.choices[0].message.content + result2.choices[0].message.content)))
+        results.append((video, result2.choices[0].message.content))
     logger.info("Saving results")
 
     return {video: r for video, r in results}

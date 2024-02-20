@@ -9,4 +9,5 @@ protobuf==4.24.3
 openai-whisper==20230918
 moviepy @ git+https://github.com/Zulko/moviepy@bc8d1a831d
 pyarrow==14.0.0
+scikit-learn==1.4.0
 fastparquet==2023.10.1
