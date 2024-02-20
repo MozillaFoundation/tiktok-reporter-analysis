@@ -104,41 +104,48 @@ def create_frames_dataframe(frames, frame_timestamps):
 
 
 def extract_frames(video_path, frames_path=None):
-    logger.info("Extracting frames")
-    cap = cv2.VideoCapture(video_path)
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    # cv2 can't reliably get FPS or duration, so use moviepy to get duration.
-    # We still use cv2 to extract frames as it's faster.
-    clip = VideoFileClip(video_path)
-    duration = clip.duration
+    parquet_file = os.path.join(frames_path, "frames.parquet") if frames_path else None
+    if frames_path and os.path.exists(parquet_file):
+        logger.info("Loading frames from parquet")
+        frames_dataframe = pd.read_parquet(parquet_file)
+    else:
+        logger.info("Extracting frames")
+        cap = cv2.VideoCapture(video_path)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        # cv2 can't reliably get FPS or duration, so use moviepy to get duration.
+        # We still use cv2 to extract frames as it's faster.
+        clip = VideoFileClip(video_path)
+        duration = clip.duration
 
-    logger.info(f"video_clip.duration={duration} and frame_count={frame_count}")
+        logger.info(f"video_clip.duration={duration} and frame_count={frame_count}")
 
-    frames_dataframe = pd.DataFrame(columns=["frame", "timestamp", "image"])
-    logger.info(f"There are {frame_count} frames to process")
-    frame_index = 0
-    while True:
-        print(f"frame index is {frame_index}")
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_image = Image.fromarray(frame_rgb)
-        frame_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
-        frames_dataframe = pd.concat(
-            [
-                frames_dataframe,
-                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]}),
-            ],
-            ignore_index=True,
-        )
-        if frames_path:
-            if not os.path.exists(frames_path):
-                os.makedirs(frames_path)
-            logger.info("Saving frame to disk")
-            frame_image.save(os.path.join(frames_path, f"frame_{frame_index:06d}.png"))
-        frame_index = frame_index + 1
-    logger.info("Frames extracted")
+        frames_dataframe = pd.DataFrame(columns=["frame", "timestamp", "image"])
+        logger.info(f"There are {frame_count} frames to process")
+        frame_index = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_image = Image.fromarray(frame_rgb)
+            frame_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
+            frames_dataframe = pd.concat(
+                [
+                    frames_dataframe,
+                    pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]}),
+                ],
+                ignore_index=True,
+            )
+            if frames_path:
+                if not os.path.exists(frames_path):
+                    os.makedirs(frames_path)
+                logger.info("Saving frame to disk")
+                frame_image.save(os.path.join(frames_path, f"frame_{frame_index:06d}.png"))
+            frame_index = frame_index + 1
+        logger.info("Frames extracted")
+        if parquet_file:
+            logger.info("Saving frames to parquet")
+            frames_dataframe.to_parquet(parquet_file)
     return frames_dataframe
 
 
