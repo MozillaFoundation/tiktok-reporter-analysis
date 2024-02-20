@@ -333,7 +333,11 @@ def multi_modal_analysis_gpt(frames, results_path, PROMPT, transcripts=None, tes
                 "content": [
                     {
                         "type": "text",
-                        "text": f"Given the following text please choose whether to classify the video as 'informative' or 'other'.  Please output nothing but one of those two words.  The text is {result.choices[0].message.content}",
+                        "text": (
+                            f"Given the following text please choose whether to classify the video as 'informative' "
+                            f"or 'other'. Please output nothing but one of those two words. The text is "
+                            f"{result.choices[0].message.content}"
+                        ),
                     },
                 ],
             }
@@ -344,7 +348,7 @@ def multi_modal_analysis_gpt(frames, results_path, PROMPT, transcripts=None, tes
             max_tokens=500,
         )
 
-        #results.append((video, (result.choices[0].message.content + result2.choices[0].message.content)))
+        # results.append((video, (result.choices[0].message.content + result2.choices[0].message.content)))
         results.append((video, result2.choices[0].message.content))
     logger.info("Saving results")
 

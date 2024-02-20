@@ -119,7 +119,7 @@ def extract_frames(video_path, frames_path=None):
 
         logger.info(f"video_clip.duration={duration} and frame_count={frame_count}")
 
-        frames_dataframe = pd.DataFrame(columns=["frame", "timestamp", "image"])
+        frames_dataframe_rows = []
         logger.info(f"There are {frame_count} frames to process")
         frame_index = 0
         while True:
@@ -129,12 +129,8 @@ def extract_frames(video_path, frames_path=None):
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_image = Image.fromarray(frame_rgb)
             frame_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
-            frames_dataframe = pd.concat(
-                [
-                    frames_dataframe,
-                    pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]}),
-                ],
-                ignore_index=True,
+            frames_dataframe_rows.append(
+                pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
             )
             if frames_path:
                 if not os.path.exists(frames_path):
@@ -146,6 +142,7 @@ def extract_frames(video_path, frames_path=None):
         if parquet_file:
             logger.info("Saving frames to parquet")
             frames_dataframe.to_parquet(parquet_file)
+        frames_dataframe = pd.concat(frames_dataframe_rows, ignore_index=True)
     return frames_dataframe
 
 
