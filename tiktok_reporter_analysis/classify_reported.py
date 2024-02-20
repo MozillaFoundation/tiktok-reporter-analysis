@@ -20,12 +20,12 @@ from tiktok_reporter_analysis.multimodal import multi_modal_analysis
 logger = logging.getLogger(__name__)
 
 
-def classify_reported(video_path, results_path, prompt_file, model, testing=False, multimodal=False, debug=False):
+def classify_reported(video_path, results_path, prompt_file, model, testing=False, multimodal=False):
     logger.info(f"Processing reported videos from {video_path}")
     video_paths = get_video_paths(video_path)
 
     logger.info("Loading whisper model")
-    whisper_model = whisper.load_model("base", device=set_backend(no_mps=True))
+    whisper_model = whisper.load_model("large", device=set_backend(no_mps=True))
     logger.info("Whisper model loaded")
 
     transcripts = {}
@@ -33,9 +33,22 @@ def classify_reported(video_path, results_path, prompt_file, model, testing=Fals
     for i, video_path in enumerate(video_paths):
         logger.info(f"Processing video {i+1}/{len(video_paths)}: {video_path}")
         frames_path = os.path.join(results_path, "frames", os.path.basename(video_path).split(".")[0])
-        current_frames_dataframe = select_frames(extract_frames(video_path, frames_path if debug else None))
+        current_frames_dataframe = select_frames(extract_frames(video_path, frames_path))
         with VideoFileClip(video_path) as video_clip:
-            transcript = extract_transcript(video_clip, whisper_model)
+            transcript_file = os.path.join(
+                results_path,
+                "temp",
+                "whisper_cache",
+                os.path.basename(video_path).split(".")[0] + ".txt"
+            )
+            if os.path.exists(transcript_file):
+                with open(transcript_file, 'r') as file:
+                    transcript = file.read()
+            else:
+                transcript = extract_transcript(video_clip, whisper_model)
+                os.makedirs(os.path.dirname(transcript_file), exist_ok=True)
+                with open(transcript_file, 'w') as file:
+                    file.write(transcript)
         current_frames_dataframe["video"] = 0
         current_frames_dataframe["video_path"] = video_path
         frames_dataframes.append(current_frames_dataframe)

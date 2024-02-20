@@ -21,7 +21,10 @@ df2 = df2[["id", "description"]]
 # Rename 'description' column to 'category'
 df2.rename(columns={"description": "category"}, inplace=True)
 # Replace the category with its last word and convert to lower case
-df2["category"] = df2["category"].apply(lambda x: x.strip().split()[-1].lower() if len(x.strip().split()) != 0 else "other")
+df2["category"] = df2["category"].apply(
+    lambda x: x.strip().split()[-1].lower()
+    if len(x.strip().split()) != 0 else "other"
+)
 
 df["id"] = df["id"].astype(str)
 # Merge the two dataframes on 'id'
