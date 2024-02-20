@@ -59,6 +59,7 @@ def get_video_paths(video_path):
         video_paths = [video_path]
     return video_paths
 
+
 def select_frames_int(frames):
     min_frame = min(frames)
     max_frame = max(frames)
@@ -69,6 +70,7 @@ def select_frames_int(frames):
     current_frames = [min(frames, key=lambda x: abs(x - one_third)), min(frames, key=lambda x: abs(x - two_thirds))]
     return current_frames
 
+
 def select_frames(frames):
     min_frame = min(frames.frame)
     max_frame = max(frames.frame)
@@ -76,7 +78,10 @@ def select_frames(frames):
     one_third = min_frame + (max_frame - min_frame) // 3
     two_thirds = min_frame + 2 * (max_frame - min_frame) // 3
     # Find the frames that are closest to one third and two thirds of the way between min and max
-    current_frames = [min(frames.frame, key=lambda x: abs(x - one_third)), min(frames.frame, key=lambda x: abs(x - two_thirds))]
+    current_frames = [
+        min(frames.frame, key=lambda x: abs(x - one_third)),
+        min(frames.frame, key=lambda x: abs(x - two_thirds)),
+    ]
     return frames[frames.frame.isin(current_frames)]
 
 
@@ -104,10 +109,11 @@ def create_frames_dataframe(frames, frame_timestamps):
 
 
 def extract_frames(video_path, frames_path=None):
-    parquet_file = os.path.join(frames_path, "frames.parquet") if frames_path else None
-    if frames_path and os.path.exists(parquet_file):
-        logger.info("Loading frames from parquet")
-        frames_dataframe = pd.read_parquet(parquet_file)
+    pickle_file = os.path.join(frames_path, "frames.pkl") if frames_path else None
+    if frames_path and os.path.exists(pickle_file):
+        logger.info("Loading frames from pickle")
+        with open(pickle_file, 'rb') as f:
+            frames_dataframe = pickle.load(f)
     else:
         logger.info("Extracting frames")
         cap = cv2.VideoCapture(video_path)
@@ -132,17 +138,20 @@ def extract_frames(video_path, frames_path=None):
             frames_dataframe_rows.append(
                 pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
             )
-            if frames_path:
+            if frames_path and False:
                 if not os.path.exists(frames_path):
                     os.makedirs(frames_path)
                 logger.info("Saving frame to disk")
                 frame_image.save(os.path.join(frames_path, f"frame_{frame_index:06d}.png"))
             frame_index = frame_index + 1
         logger.info("Frames extracted")
-        if parquet_file:
-            logger.info("Saving frames to parquet")
-            frames_dataframe.to_parquet(parquet_file)
         frames_dataframe = pd.concat(frames_dataframe_rows, ignore_index=True)
+        if pickle_file:
+            logger.info("Saving frames to pickle")
+            if not os.path.exists(frames_path):
+                os.makedirs(frames_path)
+            with open(pickle_file, 'wb') as f:
+                pickle.dump(frames_dataframe, f)
     return frames_dataframe
 
 
@@ -151,4 +160,4 @@ def extract_transcript(video_clip, whisper_model):
     with NamedTemporaryFile(suffix=".wav") as tmpfile:
         audio.write_audiofile(tmpfile.name)
         transcript = whisper_model.transcribe(tmpfile.name)
-    return transcript
+    return transcript["text"]

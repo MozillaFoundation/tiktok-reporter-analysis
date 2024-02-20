@@ -40,7 +40,7 @@ def create_prompts_for_idefics(frames, videos, prompt, transcripts=None):
                 prompt,
                 image1,
                 image2,
-                ("Transcript: " + transcripts[(video_path, video)]["text"]) if transcripts else "" "<end_of_utterance>",
+                ("Transcript: " + transcripts[(video_path, video)]) if transcripts else "" "<end_of_utterance>",
                 "\nAssistant:",
             ],
         ]
@@ -63,7 +63,7 @@ def create_prompt_for_gpt(frames, video_path, video_number, prompt, transcript=N
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": prompt.format(transcript=transcript["text"] if transcript else "")},
+                {"type": "text", "text": prompt.format(transcript=transcript if transcript else "")},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image1}"}},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image2}"}},
             ],
@@ -151,7 +151,7 @@ def create_prompt_for_llava(frames, video_path, video_number, prompt, transcript
         },
         {
             "role": "user",
-            "content": prompt.format(transcript=transcript["text"] if transcript else ""),
+            "content": prompt.format(transcript=transcript if transcript else ""),
             "images": [buf1.getvalue(), buf2.getvalue()],
         },
     ]
@@ -228,7 +228,7 @@ def multi_modal_analysis(
                 for video_path, video in videos
             ],
             "description": [generated_text[video] for video in videos],
-            "audio_transcript": [transcripts[(video_path, video)]["text"] for video_path, video in videos],
+            "audio_transcript": [transcripts[(video_path, video)] for video_path, video in videos],
         }
     )
     output_df["timestamp1"] = format_ms_timestamp(output_df["frame1"].map(frames_to_timestamps))
