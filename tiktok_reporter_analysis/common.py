@@ -108,7 +108,7 @@ def create_frames_dataframe(frames, frame_timestamps):
     return df
 
 
-def extract_frames(video_path, frames_path=None):
+def extract_frames(video_path, frames_path=None, only_save_selected=False):
     pickle_file = os.path.join(frames_path, "frames.pkl") if frames_path else None
     if frames_path and os.path.exists(pickle_file):
         logger.info("Loading frames from pickle")
@@ -138,14 +138,11 @@ def extract_frames(video_path, frames_path=None):
             frames_dataframe_rows.append(
                 pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
             )
-            if frames_path and False:
-                if not os.path.exists(frames_path):
-                    os.makedirs(frames_path)
-                logger.info("Saving frame to disk")
-                frame_image.save(os.path.join(frames_path, f"frame_{frame_index:06d}.png"))
             frame_index = frame_index + 1
         logger.info("Frames extracted")
         frames_dataframe = pd.concat(frames_dataframe_rows, ignore_index=True)
+        if only_save_selected:
+            frames_dataframe = select_frames(frames_dataframe)
         if pickle_file:
             logger.info("Saving frames to pickle")
             if not os.path.exists(frames_path):

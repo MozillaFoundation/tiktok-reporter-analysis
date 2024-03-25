@@ -2,4 +2,4 @@ Here are two frames from a tiktok video.  The transcript of the video is here if
 
 "{transcript}"
 
- Based on the frames, and the transcript (if it is available), classify the video into either 'informative' or 'other'. Infer what is happening in the whole video based on the frames.  Remember that the transcript is transcribed using a whisper model and may contain errors.  It's possible that there is no transcript, so please don't ask if it is missing.  Please think step by step and explain your reasoning to choose a category of either 'informative' or 'other'.  Please answer in English.
+ Based on the frames, and the transcript (if it is available), classify the video into either 'informative' or 'other'. Infer what is happening in the whole video based on the frames.  Remember that the transcript is transcribed using a whisper model and may contain errors.  It's possible that there is no transcript, so please don't ask if it is missing.  Please think step by step and explain your reasoning to choose a category of either 'informative' or 'other'.  Please answer in English, ending your answer with the word 'informative' or 'other'.

@@ -53,17 +53,16 @@ if __name__ == "__main__":
     reported_parser = subparsers.add_parser("analyze_reported")
     reported_parser.add_argument("video_path", help="path to the video file or folder containing multiple videos")
     reported_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
-    reported_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
     reported_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
-    reported_parser.add_argument(
-        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
-    )
-    reported_parser.add_argument("--model", help="Model to use (idefics, llava, or gpt)", default="gpt")
+    reported_parser.add_argument("--prompt_file", help="Prompt to use")
+    reported_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
+    reported_parser.add_argument("--model", help="Model to use (lmstudio or gpt)", default="gpt")
+    reported_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
+    reported_parser.add_argument("--oneimage", help="Use only one frame of each video", action="store_true")
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
     multimodal_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
-    multimodal_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
 
     # create the parser for the "report" command
     report_parser = subparsers.add_parser("report")
@@ -91,10 +90,17 @@ if __name__ == "__main__":
         )
     elif args.command == "analyze_reported":
         classify_reported(
-            args.video_path, args.results_path, args.prompt_file, args.model, args.testing, args.multimodal
+            args.video_path,
+            args.results_path,
+            args.prompt_file,
+            args.fs_example_file,
+            args.model,
+            args.multimodal,
+            args.twopass,
+            args.oneimage,
         )
     elif args.command == "analyze_multimodal":
-        multi_modal_from_saved(args.results_path, args.testing)
+        multi_modal_from_saved(args.results_path)
     elif args.command == "report":
         generate_html_report(args.results_path)
     elif args.command == "extract":

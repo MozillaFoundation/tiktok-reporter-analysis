@@ -1,0 +1,26 @@
+[
+    {
+        "transcript": "Make sure you don't miss these unbelievable astronomical events on June, because on June 4th is the first full moon of the month, also known as the Strawberry Moon. And on the same day is the best time to view Venus since it will be at its highest point above the horizon in the evening sky. On June 7th to 10th, the daytime area-tid meteor shower producing its peak rate of meteors. On June 12th to 13th, Venus can be seen in or very near the Beehive cluster. A good pair of binoculars should be enough to see this rare event. On June 17th you can see a stunning planetary alignment. Saturn, Neptune, Jupiter, Mercury and Uranus will line up about an hour before sunrise. And the even cooler thing is, you can see this rare event with your naked eye. On June 18th is New Moon. That means the moon will not be visible in the night sky. This is also the best time of the month to observe faint objects such as galaxies and star clusters, because there is no moon light to interfere. And now don't forget to send this video to your friends so that they don't miss these beautiful events.",
+        "image1_path": "tiktok_reporter_analysis/prompts/7240137209767120155inf_image1.png",
+        "image2_path": "tiktok_reporter_analysis/prompts/7240137209767120155inf_image2.png",
+        "response": "The video appears to be an informative piece about astronomical events scheduled for June. It mentions various celestial occurrences such as the Strawberry Moon, Venus's position in relation to a star cluster, meteor showers, and planetary alignments. The content of the frames is consistent with this description, featuring images related to space and astronomy.\nCategory: informative"
+    },
+    {
+        "transcript": "Mit seit einer halben Stunde so schlecht und schwindlich, ja keiner an mir was los ist, ich hab mich schon Cola geholt, weil ich gehört, davon muss man sich übergeben. Ich meine, jetzt sind schon etwas, das heißt, ich hatte das noch, ich bin jetzt eigentlich nie schlecht, nie schwindlich. Ich hab keiner an was, was für ein Unruhmann ist schon überlegt. Ich weiß, dass das Ding, ich muss ein bisschen leise reden, weil Henrys unten und ich will ihn nicht enttäuschen. Und ja, ich hab immer so schaut, auch mal mal an. Ganz mir ist so schlecht. Ich hab mir wirklich noch nie gewünscht, dass ich mich beigeben muss, außer jetzt. 5 Minuten. 1. Schade, ich hätte mich echt gefreut.",
+        "image1_path": "tiktok_reporter_analysis/prompts/7254948333599460635rel_image1.png",
+        "image2_path": "tiktok_reporter_analysis/prompts/7254948333599460635rel_image2.png",
+        "response": "The woman seems to be discussing a pregnancy and relationship related situation.\nCategory: other"
+    },
+    {
+        "transcript": "Come, come. Gel, gel. Kom, nicht. Gel, meh. Easygoing!",
+        "image1_path": "tiktok_reporter_analysis/prompts/7220464905403567366inf_image1.png",
+        "image2_path": "tiktok_reporter_analysis/prompts/7220464905403567366inf_image2.png",
+        "response": "This video appears to be translating some simple phrases between German and Turkish, suggesting it is intended to help teach language skills.\nCategory: informative"
+    },
+    {
+        "transcript": "Iman, ich bin hier. Komm her. Nein. Nicht traurig sein.",
+        "image1_path": "tiktok_reporter_analysis/prompts/7251559535465303322oth_image1.png",
+        "image2_path": "tiktok_reporter_analysis/prompts/7251559535465303322oth_image2.png",
+        "response": "The video appears to be 'other', as the frames do not provide any clear indication of being informative, and the transcript suggests a social interaction. It seems to be a casual conversation between two people with unclear content.\ncategory: other"
+    }
+]

@@ -22,7 +22,7 @@ df2 = df2[["id", "description"]]
 df2.rename(columns={"description": "category"}, inplace=True)
 # Replace the category with its last word and convert to lower case
 df2["category"] = df2["category"].apply(
-    lambda x: x.strip().split()[-1].lower()
+    lambda x: ''.join(e for e in x.strip().split()[-1].lower() if e.isalnum())
     if len(x.strip().split()) != 0 else "other"
 )
 
