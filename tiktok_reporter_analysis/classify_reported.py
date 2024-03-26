@@ -10,7 +10,6 @@ from moviepy.editor import VideoFileClip
 from tiktok_reporter_analysis.common import (
     extract_frames,
     extract_transcript,
-    select_frames,
     get_video_paths,
     save_frames_and_transcripts,
     set_backend,

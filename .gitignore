@@ -10,5 +10,6 @@ tiktok_reporter_analysis/prompts/openai_api_key.txt
 .DS_Store
 data/checkpoints/*
 *.csv
+time.txt
 .cache
 __pycache__
