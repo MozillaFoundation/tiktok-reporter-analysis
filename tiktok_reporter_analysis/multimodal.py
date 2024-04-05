@@ -8,6 +8,8 @@ import json
 
 import base64
 import openai
+from llama_cpp import Llama
+from llama_cpp.llama_chat_format import Llava15ChatHandler
 
 
 from tiktok_reporter_analysis.common import (
@@ -182,6 +184,10 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
         generated_text = multi_modal_analysis_openai(
             frames, prompt, fs_examples, transcripts, videos, None, twopass, oneimage
         )
+    elif model == "llamacpp":
+        generated_text = multi_modal_analysis_llamacpp(
+            frames, prompt, fs_examples, transcripts, videos, twopass, oneimage
+        )
     elif model == "lmstudio":
         generated_text = multi_modal_analysis_openai(
             frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage
@@ -228,6 +234,49 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
     os.makedirs(results_path, exist_ok=True)
     output_df.to_parquet(results_path + "/video_descriptions.parquet")
     logger.info("Results saved")
+
+
+def multi_modal_analysis_llamacpp(frames, raw_prompt, fs_examples, transcripts, videos, twopass, oneimage):
+    results = []
+    chat_handler = Llava15ChatHandler(clip_model_path="data/checkpoints/mmproj-model-Q8_0.gguf")
+    llm = Llama(
+        model_path="data/checkpoints/llava-v1.5-13b-Q8_0.gguf",
+        chat_handler=chat_handler,
+        n_ctx=2048,
+        logits_all=True,
+        n_gpu_layers=-1
+    )
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
+        current_video = video
+        current_transcript = transcripts[current_video]
+        response_content = llm.create_chat_completion(
+            messages=create_prompt_for_openai(
+                frames, current_video[0], current_video[1], raw_prompt, fs_examples, current_transcript, oneimage
+            )
+        )
+        print(response_content)
+        result = response_content['choices'][0]['message']['content']
+        if twopass:
+            prompt = [
+                {
+                    "role": "user",
+                    "content": (
+                        f"Given the following text please choose whether to classify the video as "
+                        f"'informative' or 'other'. Please output nothing but one of those two words. The text "
+                        f"is {result}"
+                    ),
+                }
+            ]
+            first_result = f"{result}\n\n"
+            response = llm.create_chat_completion(messages=prompt)
+            result = response['choices'][0]['message']['content']
+        else:
+            first_result = ""
+        results.append((video, f"{first_result}{result}"))
+    logger.info("Saving results")
+
+    return {video: r for video, r in results}
 
 
 def multi_modal_analysis_ollama_llava(

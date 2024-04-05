@@ -3,7 +3,7 @@ import logging
 import os
 
 import pandas as pd
-import whisper
+from whispercpp import Whisper
 
 from moviepy.editor import VideoFileClip
 
@@ -24,7 +24,7 @@ def classify_reported(video_path, results_path, prompt_file, fs_example_file, mo
     video_paths = get_video_paths(video_path)
 
     logger.info("Loading whisper model")
-    whisper_model = whisper.load_model("large", device=set_backend(no_mps=True))
+    whisper_model = Whisper('medium')
     logger.info("Whisper model loaded")
 
     transcripts = {}

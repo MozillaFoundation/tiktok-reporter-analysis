@@ -157,4 +157,4 @@ def extract_transcript(video_clip, whisper_model):
     with NamedTemporaryFile(suffix=".wav") as tmpfile:
         audio.write_audiofile(tmpfile.name)
         transcript = whisper_model.transcribe(tmpfile.name)
-    return transcript["text"]
+    return "\n".join(whisper_model.extract_text(transcript))
