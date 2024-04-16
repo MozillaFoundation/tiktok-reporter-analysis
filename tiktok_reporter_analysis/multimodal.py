@@ -5,6 +5,7 @@ import ollama
 
 import pandas as pd
 import json
+import requests
 
 import base64
 import openai
@@ -90,6 +91,72 @@ def create_prompt_for_ollama(frames, video_path, video_number, prompt, fs_exampl
         },
     ]
     return prompt_messages
+
+
+def create_prompt_for_llamafile(frames, video_path, video_number, prompt, fs_examples, transcript, oneimage):
+    current_frames = frames.loc[
+        (frames["video"] == video_number) & (frames["video_path"] == video_path), "image"
+    ].to_list()
+    image1 = current_frames[0]
+    image2 = current_frames[1]
+    buf = io.BytesIO()
+    image1.save(buf, format="JPEG")
+    encoded_image1 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    buf = io.BytesIO()
+    image2.save(buf, format="JPEG")
+    encoded_image2 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    if fs_examples is None:
+        fs_examples = []
+    prompt_messages = sum(
+        [
+            [
+                {
+                    "role": "user",
+                    "content": (f"[img-{2*idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
+                    + prompt.format(transcript=e["transcript"]),
+                },
+                {
+                    "role": "assistant",
+                    "content": e["response"],
+                },
+            ]
+            for idx, e in enumerate(fs_examples)
+        ],
+        [],
+    ) + [
+        {
+            "role": "user",
+            "content": (
+                f"[img-{2*len(fs_examples)+1}]"
+                if oneimage
+                else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]"
+            )
+            + prompt.format(transcript=transcript if transcript else ""),
+        },
+    ]
+    images = sum(
+        [
+            (
+                [{"id": 2 * idx + 1, "data": image_to_base64(e["image1_path"])}]
+                if oneimage
+                else [
+                    {"id": 2 * idx + 1, "data": image_to_base64(e["image1_path"])},
+                    {"id": 2 * idx + 2, "data": image_to_base64(e["image2_path"])},
+                ]
+            )
+            for idx, e in enumerate(fs_examples)
+        ],
+        [],
+    ) + (
+        [{"id": 2 * len(fs_examples) + 1, "data": encoded_image1}]
+        if oneimage
+        else [
+            {"id": 2 * len(fs_examples) + 1, "data": encoded_image1},
+            {"id": 2 * len(fs_examples) + 2, "data": encoded_image2},
+        ]
+    )
+
+    return {"messages": prompt_messages, "image_data": images}
 
 
 def create_prompt_for_openai(frames, video_path, video_number, prompt, fs_examples, transcript, oneimage):
@@ -210,6 +277,17 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
             oneimage,
             "llava:34b",
         )
+    elif model == "llamafile":
+
+        generated_text = multi_modal_analysis_llamafile(
+            frames,
+            prompt,
+            fs_examples,
+            transcripts,
+            videos,
+            twopass,
+            oneimage,
+        )
     output_df = pd.DataFrame(
         {
             "video_path": [video_path for video_path, _ in videos],
@@ -244,7 +322,7 @@ def multi_modal_analysis_llamacpp(frames, raw_prompt, fs_examples, transcripts, 
         chat_handler=chat_handler,
         n_ctx=2048,
         logits_all=True,
-        n_gpu_layers=-1
+        n_gpu_layers=-1,
     )
     for idx, video in enumerate(videos, start=1):
         print(f"Starting to process video number {idx}")
@@ -256,7 +334,7 @@ def multi_modal_analysis_llamacpp(frames, raw_prompt, fs_examples, transcripts, 
             )
         )
         print(response_content)
-        result = response_content['choices'][0]['message']['content']
+        result = response_content["choices"][0]["message"]["content"]
         if twopass:
             prompt = [
                 {
@@ -270,7 +348,7 @@ def multi_modal_analysis_llamacpp(frames, raw_prompt, fs_examples, transcripts, 
             ]
             first_result = f"{result}\n\n"
             response = llm.create_chat_completion(messages=prompt)
-            result = response['choices'][0]['message']['content']
+            result = response["choices"][0]["message"]["content"]
         else:
             first_result = ""
         results.append((video, f"{first_result}{result}"))
@@ -309,6 +387,62 @@ def multi_modal_analysis_ollama_llava(
         else:
             first_result = ""
         results.append((video, f"{first_result}{result}"))
+    logger.info("Saving results")
+
+    return {video: r for video, r in results}
+
+
+def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts, videos, twopass, oneimage):
+    results = []
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
+        current_video = video
+        current_transcript = transcripts[current_video]
+        prompt = create_prompt_for_llamafile(
+            frames, current_video[0], current_video[1], raw_prompt, fs_examples, current_transcript, oneimage
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer no-key",
+        }
+
+        data = {
+            "model": "gpt-4-vision-preview",
+            "messages": prompt["messages"],
+            "max_tokens": 500,
+            "image_data": prompt["image_data"],
+        }
+
+        response = requests.post("http://localhost:8080/v1/chat/completions", headers=headers, data=json.dumps(data))
+        completion = response.json()
+        result = completion['choices'][0]['message']['content']
+        if twopass:
+            prompt = [
+                {
+                    "role": "user",
+                    "content": (
+                        "Given the following text please choose whether to classify the video as "
+                        "'informative' or 'other'. Please output nothing but one of those two words. "
+                        "The text may already contain the answer, in which case you can just repeat it. "
+                        f"The text is: \"{result}\".  Now just say \"informative\" if that text suggests "
+                        "that the video is informative or \"other\" if the text suggests it is not."
+                    ),
+                }
+            ]
+            #print(f"twopass prompt is: {prompt}\n\n\n\n")
+            first_result = f"{result}\n\n"
+            data = {
+                "model": "gpt-4-vision-preview",
+                "messages": prompt,
+                "max_tokens": 500,
+            }
+            response = requests.post("http://localhost:8080/v1/chat/completions", headers=headers, data=json.dumps(data))
+            completion = response.json()
+            result = completion['choices'][0]['message']['content']
+        else:
+            first_result = ""
+        results.append((video, f"{first_result}SEPERATOR{result}"))
     logger.info("Saving results")
 
     return {video: r for video, r in results}
