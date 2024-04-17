@@ -93,7 +93,7 @@ def create_prompt_for_ollama(frames, video_path, video_number, prompt, fs_exampl
     return prompt_messages
 
 
-def create_prompt_for_llamafile(frames, video_path, video_number, prompt, fs_examples, transcript, oneimage):
+def create_prompt_for_llamafile(frames, video_path, video_number, raw_prompt, fs_examples, transcript, oneimage):
     current_frames = frames.loc[
         (frames["video"] == video_number) & (frames["video_path"] == video_path), "image"
     ].to_list()
@@ -107,33 +107,22 @@ def create_prompt_for_llamafile(frames, video_path, video_number, prompt, fs_exa
     encoded_image2 = base64.b64encode(buf.getvalue()).decode("utf-8")
     if fs_examples is None:
         fs_examples = []
-    prompt_messages = sum(
+    prompt = "".join(
         [
-            [
-                {
-                    "role": "user",
-                    "content": (f"[img-{2*idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
-                    + prompt.format(transcript=e["transcript"]),
-                },
-                {
-                    "role": "assistant",
-                    "content": e["response"],
-                },
-            ]
-            for idx, e in enumerate(fs_examples)
-        ],
-        [],
-    ) + [
-        {
-            "role": "user",
-            "content": (
-                f"[img-{2*len(fs_examples)+1}]"
-                if oneimage
-                else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]"
+            (
+                '### User:'
+                + (f"[img-{2*idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
+                + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant:{e["response"]}\n'
             )
-            + prompt.format(transcript=transcript if transcript else ""),
-        },
-    ]
+            for idx, e in enumerate(fs_examples)
+        ]
+    )
+    prompt = prompt + (
+        '### User:'
+        + (f"[img-{2*len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
+        + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant:'
+    )
+    print(prompt)
     images = sum(
         [
             (
@@ -156,7 +145,7 @@ def create_prompt_for_llamafile(frames, video_path, video_number, prompt, fs_exa
         ]
     )
 
-    return {"messages": prompt_messages, "image_data": images}
+    return {"prompt": prompt, "image_data": images}
 
 
 def create_prompt_for_openai(frames, video_path, video_number, prompt, fs_examples, transcript, oneimage):
@@ -262,7 +251,7 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
     elif model == "ollama-llava":
 
         generated_text = multi_modal_analysis_ollama_llava(
-            frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage, "llava"
+            frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage, "llava:7b-v1.5-q4_K_M"
         )
     elif model == "ollama-llava34":
 
@@ -409,16 +398,26 @@ def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts,
 
         data = {
             "model": "gpt-4-vision-preview",
-            "messages": prompt["messages"],
+            "prompt": prompt["prompt"],
             "max_tokens": 500,
             "image_data": prompt["image_data"],
         }
-
-        response = requests.post("http://localhost:8080/v1/chat/completions", headers=headers, data=json.dumps(data))
+        response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
         completion = response.json()
-        result = completion['choices'][0]['message']['content']
+        #print(completion)
+        result = completion['content']
         if twopass:
-            prompt = [
+            prompt = (
+                '### User:'
+                "Given the following text please choose whether to classify the video as "
+                "'informative' or 'other'. Please output nothing but one of those two words. "
+                "The text may already contain the answer, in which case you can just repeat it. "
+                f"The text is: \"{result}\".  Now just say \"informative\" if that text suggests "
+                "that the video is informative or \"other\" if the text suggests it is not."
+                "\n### Assistant:"
+            )
+            
+            [
                 {
                     "role": "user",
                     "content": (
