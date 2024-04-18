@@ -397,7 +397,6 @@ def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts,
         }
 
         data = {
-            "model": "gpt-4-vision-preview",
             "prompt": prompt["prompt"],
             "max_tokens": 500,
             "image_data": prompt["image_data"],
@@ -407,6 +406,7 @@ def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts,
         #print(completion)
         result = completion['content']
         if twopass:
+            first_result = f"{result}\n\n"
             prompt = (
                 '### User:'
                 "Given the following text please choose whether to classify the video as "
@@ -416,29 +416,19 @@ def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts,
                 "that the video is informative or \"other\" if the text suggests it is not."
                 "\n### Assistant:"
             )
-            
-            [
-                {
-                    "role": "user",
-                    "content": (
-                        "Given the following text please choose whether to classify the video as "
-                        "'informative' or 'other'. Please output nothing but one of those two words. "
-                        "The text may already contain the answer, in which case you can just repeat it. "
-                        f"The text is: \"{result}\".  Now just say \"informative\" if that text suggests "
-                        "that the video is informative or \"other\" if the text suggests it is not."
-                    ),
-                }
-            ]
             #print(f"twopass prompt is: {prompt}\n\n\n\n")
-            first_result = f"{result}\n\n"
+            
             data = {
-                "model": "gpt-4-vision-preview",
-                "messages": prompt,
+                "prompt": prompt,
                 "max_tokens": 500,
             }
-            response = requests.post("http://localhost:8080/v1/chat/completions", headers=headers, data=json.dumps(data))
-            completion = response.json()
-            result = completion['choices'][0]['message']['content']
+            response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
+            try:
+                completion = response.json()
+                result = completion['content']
+            except requests.exceptions.JSONDecodeError:
+                print(f"Couldn't decode JSON\n\n{response}")
+                result = "ERROR"
         else:
             first_result = ""
         results.append((video, f"{first_result}SEPERATOR{result}"))
