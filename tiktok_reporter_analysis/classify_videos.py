@@ -2,7 +2,7 @@ import logging
 import os
 
 import pandas as pd
-import whisper
+from whispercpp import Whisper
 
 from tiktok_reporter_analysis.analyze_screen_recording import (
     analyze_screen_recording,
@@ -29,8 +29,7 @@ def classify_videos(
     video_paths = get_video_paths(video_path)
 
     logger.info("Loading frame classification and whisper models")
-    whisper_device = set_backend(no_mps=True)
-    whisper_model = whisper.load_model("large", device=whisper_device)
+    whisper_model = Whisper('medium')
     logger.info("Frame classification and whisper models loaded")
 
     transcripts = {}
