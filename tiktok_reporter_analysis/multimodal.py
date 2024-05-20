@@ -11,6 +11,9 @@ import base64
 import openai
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler
+from litellm import completion
+import instructor
+from pydantic import BaseModel
 
 
 from tiktok_reporter_analysis.common import (
@@ -110,7 +113,7 @@ def create_prompt_for_llamafile(frames, video_path, video_number, raw_prompt, fs
     prompt = "".join(
         [
             (
-                '### User:'
+                "### User:"
                 + (f"[img-{2*idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
                 + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant:{e["response"]}\n'
             )
@@ -118,7 +121,7 @@ def create_prompt_for_llamafile(frames, video_path, video_number, raw_prompt, fs
         ]
     )
     prompt = prompt + (
-        '### User:'
+        "### User:"
         + (f"[img-{2*len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
         + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant:'
     )
@@ -223,6 +226,81 @@ def create_prompt_for_openai(frames, video_path, video_number, prompt, fs_exampl
     return prompt_messages
 
 
+def create_prompt_for_litellm(frames, video_path, video_number, prompt, fs_examples, transcript, oneimage):
+    current_frames = frames.loc[
+        (frames["video"] == video_number) & (frames["video_path"] == video_path), "image"
+    ].to_list()
+    image1 = current_frames[0]
+    image2 = current_frames[1]
+    buf = io.BytesIO()
+    image1.save(buf, format="JPEG")
+    encoded_image1 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    buf = io.BytesIO()
+    image2.save(buf, format="JPEG")
+    encoded_image2 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    if fs_examples is None:
+        fs_examples = []
+    prompt_messages = sum(
+        [
+            [
+                {
+                    "role": "user",
+                    "content": (
+                        [
+                            {
+                                "type": "text",
+                                "text": prompt.format(transcript=e["transcript"]),
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"{image_to_base64(e['image1_path'])}"},
+                            },
+                        ]
+                        if oneimage
+                        else [
+                            {
+                                "type": "text",
+                                "text": prompt.format(transcript=e["transcript"]),
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"{image_to_base64(e['image1_path'])}"},
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"{image_to_base64(e['image2_path'])}"},
+                            },
+                        ]
+                    ),
+                },
+                {
+                    "role": "assistant",
+                    "content": e["response"],
+                },
+            ]
+            for e in fs_examples
+        ],
+        [],
+    ) + [
+        {
+            "role": "user",
+            "content": (
+                [
+                    {"type": "text", "text": prompt.format(transcript=transcript if transcript else "")},
+                    {"type": "image_url", "image_url": {"url": f"{encoded_image1}"}},
+                ]
+                if oneimage
+                else [
+                    {"type": "text", "text": prompt.format(transcript=transcript if transcript else "")},
+                    {"type": "image_url", "image_url": {"url": f"{encoded_image1}"}},
+                    {"type": "image_url", "image_url": {"url": f"{encoded_image2}"}},
+                ]
+            ),
+        },
+    ]
+    return prompt_messages
+
+
 def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, model, transcripts, twopass, oneimage):
     frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
     logger.info("Running multimodal analysis")
@@ -244,6 +322,10 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
         generated_text = multi_modal_analysis_llamacpp(
             frames, prompt, fs_examples, transcripts, videos, twopass, oneimage
         )
+    elif model == "litellm":
+        generated_text = multi_modal_analysis_litellm(
+            frames, prompt, fs_examples, transcripts, videos, twopass, oneimage, model
+        )
     elif model == "lmstudio":
         generated_text = multi_modal_analysis_openai(
             frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage
@@ -251,7 +333,15 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
     elif model == "ollama-llava":
 
         generated_text = multi_modal_analysis_ollama_llava(
-            frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage, "llava:7b-v1.5-q4_K_M"
+            frames,
+            prompt,
+            fs_examples,
+            transcripts,
+            videos,
+            "http://localhost:1234/v1",
+            twopass,
+            oneimage,
+            "llava:13b-v1.6-vicuna-fp16",
         )
     elif model == "ollama-llava34":
 
@@ -346,10 +436,60 @@ def multi_modal_analysis_llamacpp(frames, raw_prompt, fs_examples, transcripts, 
     return {video: r for video, r in results}
 
 
+class Classification(BaseModel):
+    reason: str
+    is_informative: bool
+
+
+def multi_modal_analysis_litellm(frames, raw_prompt, fs_examples, transcripts, videos, twopass, oneimage, model):
+    results = []
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
+        current_video = video
+        current_transcript = transcripts[current_video]
+        response = completion(
+            messages=create_prompt_for_litellm(  # will be able to use normal openai prompts when this or similr is merged: https://github.com/BerriAI/litellm/pull/2948
+                frames, current_video[0], current_video[1], raw_prompt, fs_examples, current_transcript, oneimage
+            ),
+            model="ollama/llava",
+        )
+        result = response.choices[0].message.content
+        if twopass:
+            prompt = [
+                {
+                    "role": "user",
+                    "content": (
+                        f"Given the following text please choose whether to classify the video as "
+                        f"'informative' or 'other'. Please output nothing but one of those two words. The text "
+                        f"is {result}"
+                    ),
+                }
+            ]
+            first_result = f"{result}\n\n"
+            response = completion(messages=prompt, model="ollama/llama2")
+            result = response.choices[0].message.content
+        else:
+            first_result = ""
+        results.append((video, f"{first_result}{result}"))
+    logger.info("Saving results")
+
+    return {video: r for video, r in results}
+
+
+from openai import OpenAI
+
+
 def multi_modal_analysis_ollama_llava(
     frames, raw_prompt, fs_examples, transcripts, videos, server, twopass, oneimage, model
 ):
     results = []
+    client = instructor.from_openai(
+        OpenAI(
+            base_url="http://localhost:11434/v1",
+            api_key="ollama",  # required, but unused
+        ),
+        #mode=instructor.Mode.JSON,
+    )
     for idx, video in enumerate(videos, start=1):
         print(f"Starting to process video number {idx}")
         current_video = video
@@ -357,7 +497,9 @@ def multi_modal_analysis_ollama_llava(
         prompt = create_prompt_for_ollama(
             frames, current_video[0], current_video[1], raw_prompt, fs_examples, current_transcript, oneimage
         )
-        response = ollama.chat(model=model, messages=prompt, keep_alive=-1)
+        response = client.chat.completions.create(model=model, messages=prompt, response_model=Classification)
+        print(response)
+        1 / 0
         result = response["message"]["content"]
         if twopass:
             prompt = [
@@ -403,21 +545,21 @@ def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts,
         }
         response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
         completion = response.json()
-        #print(completion)
-        result = completion['content']
+        # print(completion)
+        result = completion["content"]
         if twopass:
             first_result = f"{result}\n\n"
             prompt = (
-                '### User:'
+                "### User:"
                 "Given the following text please choose whether to classify the video as "
                 "'informative' or 'other'. Please output nothing but one of those two words. "
                 "The text may already contain the answer, in which case you can just repeat it. "
-                f"The text is: \"{result}\".  Now just say \"informative\" if that text suggests "
-                "that the video is informative or \"other\" if the text suggests it is not."
+                f'The text is: "{result}".  Now just say "informative" if that text suggests '
+                'that the video is informative or "other" if the text suggests it is not.'
                 "\n### Assistant:"
             )
-            #print(f"twopass prompt is: {prompt}\n\n\n\n")
-            
+            # print(f"twopass prompt is: {prompt}\n\n\n\n")
+
             data = {
                 "prompt": prompt,
                 "max_tokens": 500,
@@ -425,7 +567,7 @@ def multi_modal_analysis_llamafile(frames, raw_prompt, fs_examples, transcripts,
             response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
             try:
                 completion = response.json()
-                result = completion['content']
+                result = completion["content"]
             except requests.exceptions.JSONDecodeError:
                 print(f"Couldn't decode JSON\n\n{response}")
                 result = "ERROR"
