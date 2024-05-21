@@ -41,13 +41,12 @@ if __name__ == "__main__":
         "--checkpoint_path", help="path to the checkpoint file", default="./data/checkpoints/best_model.pth"
     )
     analyze_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
-    analyze_parser.add_argument("--testing", help="test with smaller random model", action="store_true")
     analyze_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
-    analyze_parser.add_argument("--debug", help="debugging mode (eg. saves frames to disk)", action="store_true")
     analyze_parser.add_argument(
-        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/idefics_prompt.txt"
+        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/llava_prompt.txt"
     )
     analyze_parser.add_argument("--model", help="Model to use (idefics, llava, or gpt)", default="gpt")
+    analyze_parser.add_argument("--oneimage", help="Use only one frame of each video", action="store_true")
 
     # create the parser for the "reported" command
     reported_parser = subparsers.add_parser("analyze_reported")
@@ -84,9 +83,8 @@ if __name__ == "__main__":
             args.prompt_file,
             args.model,
             args.results_path,
-            args.testing,
             args.multimodal,
-            args.debug,
+            args.oneimage,
         )
     elif args.command == "analyze_reported":
         classify_reported(
