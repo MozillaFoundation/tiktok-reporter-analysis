@@ -251,7 +251,7 @@ def multi_modal_analysis(frames, results_path, prompt_file, fs_example_file, mod
     elif model == "ollama-llava":
 
         generated_text = multi_modal_analysis_ollama_llava(
-            frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage, "llava:7b-v1.5-q4_K_M"
+            frames, prompt, fs_examples, transcripts, videos, "http://localhost:1234/v1", twopass, oneimage, "llava:34b-v1.6-fp16"
         )
     elif model == "ollama-llava34":
 

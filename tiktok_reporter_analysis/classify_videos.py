@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def classify_videos(
-    video_path, checkpoint_path, prompt_file, model, results_path, testing=False, multimodal=False, debug=False
+    video_path, checkpoint_path, prompt_file, model, results_path, multimodal, oneimage
 ):
     logger.info(f"Processing screen recordings from {video_path}")
     video_paths = get_video_paths(video_path)
@@ -106,7 +106,7 @@ def classify_videos(
     logger.info("Frames and transcripts extracted")
     if multimodal:
         multi_modal_analysis(
-            selected_frames_dataframe, results_path, prompt_file, model, transcripts=transcripts, testing=testing
+            selected_frames_dataframe, results_path, prompt_file, "", model, transcripts, False, oneimage
         )
     else:
         save_frames_and_transcripts(selected_frames_dataframe, transcripts, results_path)
