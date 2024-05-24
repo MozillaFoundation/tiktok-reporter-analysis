@@ -12,14 +12,17 @@ from tiktok_reporter_analysis.common import (
     extract_transcript,
     get_video_paths,
     save_frames_and_transcripts,
-    set_backend,
 )
 from tiktok_reporter_analysis.multimodal import multi_modal_analysis
 
 logger = logging.getLogger(__name__)
 
 
-def classify_reported(video_path, results_path, prompt_file, fs_example_file, model, multimodal, twopass, oneimage):
+def classify_reported(
+        video_path, results_path, prompt_file, fs_example_file,
+        backend, model, modality_image, modality_text, modality_video,
+        multimodal, twopass
+):
     logger.info(f"Processing reported videos from {video_path}")
     video_paths = get_video_paths(video_path)
 
@@ -58,7 +61,9 @@ def classify_reported(video_path, results_path, prompt_file, fs_example_file, mo
     if multimodal:
         start_time = time.time()
         multi_modal_analysis(
-            frames_dataframe, results_path, prompt_file, fs_example_file, model, transcripts, twopass, oneimage
+            frames_dataframe, results_path, prompt_file, fs_example_file,
+            backend, model, transcripts, modality_image, modality_text,
+            modality_video, twopass
         )
         end_time = time.time()
         elapsed_time = end_time - start_time
