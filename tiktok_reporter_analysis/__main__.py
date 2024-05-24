@@ -43,7 +43,7 @@ if __name__ == "__main__":
     analyze_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     analyze_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
     analyze_parser.add_argument(
-        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/llava_prompt.txt"
+        "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/gpt_prompt.txt"
     )
     analyze_parser.add_argument("--model", help="Model to use (idefics, llava, or gpt)", default="gpt")
     analyze_parser.add_argument("--oneimage", help="Use only one frame of each video", action="store_true")
@@ -52,12 +52,23 @@ if __name__ == "__main__":
     reported_parser = subparsers.add_parser("analyze_reported")
     reported_parser.add_argument("video_path", help="path to the video file or folder containing multiple videos")
     reported_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
-    reported_parser.add_argument("--multimodal", help="run multimodal analysis", action="store_true")
+    reported_parser.add_argument(
+        "--nomultimodal", help="do not run multimodal analysis", action="store_false", dest="multimodal", default=True
+    )
     reported_parser.add_argument("--prompt_file", help="Prompt to use")
     reported_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
-    reported_parser.add_argument("--model", help="Model to use (lmstudio or gpt)", default="gpt")
+    reported_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
+    reported_parser.add_argument("--model", help="Model to use", default="llavallava:34b-v1.6-fp16")
     reported_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
-    reported_parser.add_argument("--oneimage", help="Use only one frame of each video", action="store_true")
+    reported_parser.add_argument(
+        "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
+    )
+    reported_parser.add_argument(
+        "--modality_text", help="Specify whether to include a transcript or not", action="store_true"
+    )
+    reported_parser.add_argument(
+        "--modality_video", help="Specify whether to include video file or not", action="store_true"
+    )
 
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
@@ -68,9 +79,9 @@ if __name__ == "__main__":
     report_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
 
     # create the parser for the "extract" command
-    report_parser = subparsers.add_parser("extract")
-    report_parser.add_argument("--frames_path", help="path to the frames folder", default="./data/frames")
-    report_parser.add_argument("--video_path", help="path to the video file")
+    extract_parser = subparsers.add_parser("extract")
+    extract_parser.add_argument("--frames_path", help="path to the frames folder", default="./data/frames")
+    extract_parser.add_argument("--video_path", help="path to the video file")
 
     args = parser.parse_args()
 
@@ -92,10 +103,13 @@ if __name__ == "__main__":
             args.results_path,
             args.prompt_file,
             args.fs_example_file,
+            args.backend,
             args.model,
+            args.modality_image,
+            args.modality_text,
+            args.modality_video,
             args.multimodal,
             args.twopass,
-            args.oneimage,
         )
     elif args.command == "analyze_multimodal":
         multi_modal_from_saved(args.results_path)

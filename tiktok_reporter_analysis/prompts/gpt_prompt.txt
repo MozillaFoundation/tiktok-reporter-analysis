@@ -1,0 +1,3 @@
+These are a two frames from a short-form video. If available, the transcript of the video follows, but note that it in transcribed using whisper and may contain errors. Write a short paragraph description of the video based on the two frames and the transcript if available. Don't talk about the frames individually but infer what is happening in the whole video.  Do your best to describe the video with the information provided.
+
+Transcript is: {transcript}
