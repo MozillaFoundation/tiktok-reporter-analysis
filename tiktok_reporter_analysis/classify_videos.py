@@ -13,7 +13,6 @@ from tiktok_reporter_analysis.common import (
     get_video_paths,
     save_frames_and_transcripts,
     select_frames_int,
-    set_backend,
 )
 from tiktok_reporter_analysis.multimodal import multi_modal_analysis
 

@@ -6,7 +6,7 @@ data/training_data/*.mp4
 data/screen_recordings
 data/results/*
 data/videos/*
-tiktok_reporter_analysis/prompts/openai_api_key.txt
+tiktok_reporter_analysis/prompts/*_api_key.txt
 .DS_Store
 data/checkpoints/*
 *.csv

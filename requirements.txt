@@ -14,3 +14,5 @@ pyarrow==14.0.0
 scikit-learn==1.4.0
 fastparquet==2023.10.1
 whispercpp @ git+https://github.com/stlukey/whispercpp.py
+google-ai-generativelanguage==0.6.4
+google-generativeai==0.5.4
