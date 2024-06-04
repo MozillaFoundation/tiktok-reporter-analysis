@@ -1,4 +1,4 @@
-# NO NEED TO EXTRACT FRAMES AND TRANSCRIPTS IF USING VIDEO MODALITY
+# TODO: NO NEED TO EXTRACT FRAMES AND TRANSCRIPTS IF USING VIDEO MODALITY
 
 import logging
 import os
@@ -265,7 +265,7 @@ def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
         print(f"Starting to process video number {idx}")
         current_video = video[0]
         print(f"Uploading {current_video}")
-        video_file = genai.upload_file(path=current_video) # TODO: batch this
+        video_file = genai.upload_file(path=current_video)  # TODO: batch this
         while video_file.state.name == "PROCESSING":
             time.sleep(10)
             video_file = genai.get_file(video_file.name)

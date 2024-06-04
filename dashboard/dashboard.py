@@ -1,3 +1,5 @@
+# For images: https://discuss.streamlit.io/t/cannot-display-imagecolumns-with-streamlit/50957
+
 import streamlit as st
 import pandas as pd
 import os
@@ -81,6 +83,8 @@ def pubsub_data_available(message: pubsub_v1.subscriber.message.Message) -> None
         decompressed_data = f.read()
     json_str = decompressed_data.decode("utf-8")
     json_data = json.loads(json_str)
+    print(json.dumps(json_data, indent=4))
+    # "document_namespace": "org-mozilla-ios-tiktok-reporter"
     if json_data["metadata"]["document_type"] == "tiktok-report":
         process_report(json_data)
     message.ack()
