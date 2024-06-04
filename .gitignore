@@ -13,3 +13,5 @@ data/checkpoints/*
 time.txt
 .cache
 __pycache__
+dashboard/regrets-reporter-dev-f440bd973b35.json
+dashboard/brightdata_token.txt
