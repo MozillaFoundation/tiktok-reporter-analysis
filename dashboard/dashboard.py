@@ -23,7 +23,7 @@ subscriber = pubsub_v1.SubscriberClient()
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
 
-def process_report(message):
+def process_ios_report(message):
 
     label_to_name = {
         "TikTok URL": "report_link",
@@ -75,6 +75,22 @@ def process_report(message):
         )
 
 
+def process_android_report(message):
+
+    raw_report = message["metrics"]["text"]
+
+    report = {}
+    for index, name in enumerate(["report_link", "category", "comment"]):
+        report[name] = json.loads(raw_report["tiktok_report.fields"])["items"][index]["inputValue"]
+
+    if "reports" not in st.session_state:
+        st.session_state["reports"] = pd.DataFrame([report])
+    else:
+        st.session_state["reports"] = pd.concat(
+            [st.session_state["reports"], pd.DataFrame([report])], ignore_index=True
+        )
+
+
 def pubsub_data_available(message: pubsub_v1.subscriber.message.Message) -> None:
     global ctx
     add_script_run_ctx(None, ctx)
@@ -84,9 +100,14 @@ def pubsub_data_available(message: pubsub_v1.subscriber.message.Message) -> None
     json_str = decompressed_data.decode("utf-8")
     json_data = json.loads(json_str)
     print(json.dumps(json_data, indent=4))
-    # "document_namespace": "org-mozilla-ios-tiktok-reporter"
     if json_data["metadata"]["document_type"] == "tiktok-report":
-        process_report(json_data)
+        if json_data["metadata"]["document_namespace"] in [
+            "org-mozilla-ios-tiktok-reporter",
+            "org-mozilla-ios-tiktok-reporter-tiktok-reportershare",
+        ]:
+            process_ios_report(json_data)
+        elif json_data["metadata"]["document_namespace"] == "org-mozilla-tiktokreporter":   # Android
+            process_android_report(json_data)
     message.ack()
     st.session_state.pubsub_stream.cancel()
     st.rerun()
