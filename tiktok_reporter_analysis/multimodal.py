@@ -64,12 +64,18 @@ def create_prompt_for_ollama(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
+
+    def truncate_transcript(t):  # Ollama crashes on very long transcripts.  Perhaps exceeding context?
+        if len(t) > 4000:
+            t = t[:4000] + "TRUNCATED"
+        return t
+
     prompt_messages = sum(
         [
             [
                 {
                     "role": "user",
-                    "content": prompt.format(transcript=e["transcript"]),
+                    "content": prompt.format(transcript=truncate_transcript(e["transcript"])),
                     "images": (
                         [image_to_buf(e["image1_path"])]
                         if oneimage
@@ -90,7 +96,9 @@ def create_prompt_for_ollama(
     ) + [
         {
             "role": "user",
-            "content": prompt.format(transcript=transcript if (modality_text and transcript) else ""),
+            "content": prompt.format(
+                transcript=truncate_transcript(transcript) if (modality_text and transcript) else ""
+            ),
             "images": (
                 [buf1.getvalue()]
                 if oneimage
@@ -265,7 +273,7 @@ def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
         print(f"Starting to process video number {idx}")
         current_video = video[0]
         print(f"Uploading {current_video}")
-        video_file = genai.upload_file(path=current_video) # TODO: batch this
+        video_file = genai.upload_file(path=current_video)  # TODO: batch this
         while video_file.state.name == "PROCESSING":
             time.sleep(10)
             video_file = genai.get_file(video_file.name)
