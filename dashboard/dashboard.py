@@ -1,16 +1,15 @@
-# For images: https://discuss.streamlit.io/t/cannot-display-imagecolumns-with-streamlit/50957
-
 import streamlit as st
 import pandas as pd
 import os
 from concurrent.futures import TimeoutError
 from google.cloud import pubsub_v1
-
 import gzip
 import json
 from io import BytesIO
 from streamlit.runtime.scriptrunner import get_script_run_ctx, add_script_run_ctx
+import asyncio
 
+from scrapfly_utils import scrape_posts
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "regrets-reporter-dev-f440bd973b35.json"
 
@@ -21,6 +20,10 @@ project_id = "regrets-reporter-dev"
 subscription_id = "dash-sub"
 subscriber = pubsub_v1.SubscriberClient()
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
+
+
+async def get_cover_image(url):
+    return await scrape_posts(urls=[url])
 
 
 def process_ios_report(message):
@@ -66,6 +69,7 @@ def process_ios_report(message):
     for label, name in label_to_name.items():
         report[name] = extract_value_by_label(raw_report["tiktok_report.fields"], label_to_name).get(name, None)
     report["category"] = category_mapping[report["category"]]
+    report["cover_image"] = asyncio.run(get_cover_image(report["report_link"]))
 
     if "reports" not in st.session_state:
         st.session_state["reports"] = pd.DataFrame([report])
@@ -82,7 +86,7 @@ def process_android_report(message):
     report = {}
     for index, name in enumerate(["report_link", "category", "comment"]):
         report[name] = json.loads(raw_report["tiktok_report.fields"])["items"][index]["inputValue"]
-
+    report["cover_image"] = asyncio.run(get_cover_image(report["report_link"]))
     if "reports" not in st.session_state:
         st.session_state["reports"] = pd.DataFrame([report])
     else:
@@ -106,7 +110,7 @@ def pubsub_data_available(message: pubsub_v1.subscriber.message.Message) -> None
             "org-mozilla-ios-tiktok-reporter-tiktok-reportershare",
         ]:
             process_ios_report(json_data)
-        elif json_data["metadata"]["document_namespace"] == "org-mozilla-tiktokreporter":   # Android
+        elif json_data["metadata"]["document_namespace"] == "org-mozilla-tiktokreporter":  # Android
             process_android_report(json_data)
     message.ack()
     st.session_state.pubsub_stream.cancel()
@@ -119,7 +123,13 @@ st.session_state["pubsub_stream"] = streaming_pull_future
 if "reports" not in st.session_state:
     st.write(f"Listening for first messages on {subscription_path}..\n")
 else:
-    st.dataframe(st.session_state.reports)
+    container = st.container()
+    with container:
+        st.dataframe(
+            st.session_state.reports,
+            column_config={"cover_image": st.column_config.ImageColumn(width="small")},
+            height=500,
+        )
 
 with subscriber:
     try:
