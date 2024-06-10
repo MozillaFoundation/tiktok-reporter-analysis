@@ -50,7 +50,3 @@ async def scrape_posts(urls: List[str]) -> List[Dict]:
         post_data = parse_post(response)
         data.append(post_data)
     return data[0]["video"]["cover"]
-
-
-#BASE_CONFIG["cache"] = False
-#BASE_CONFIG["debug"] = True
