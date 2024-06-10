@@ -8,11 +8,13 @@ import json
 from io import BytesIO
 from streamlit.runtime.scriptrunner import get_script_run_ctx, add_script_run_ctx
 import asyncio
+from bs4 import BeautifulSoup
+import re
 
 from scrapfly_utils import scrape_posts
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "regrets-reporter-dev-f440bd973b35.json"
-
+st.set_page_config(layout="wide")
 st.title("Realtime FYP Reporter Data Dashboard")
 
 
@@ -69,6 +71,9 @@ def process_ios_report(message):
     for label, name in label_to_name.items():
         report[name] = extract_value_by_label(raw_report["tiktok_report.fields"], label_to_name).get(name, None)
     report["category"] = category_mapping[report["category"]]
+    if report["category"] == "Other":
+        report["category"] = report["other_category"]
+    report.pop("other_category", None)
     report["cover_image"] = asyncio.run(get_cover_image(report["report_link"]))
 
     if "reports" not in st.session_state:
@@ -85,7 +90,13 @@ def process_android_report(message):
 
     report = {}
     for index, name in enumerate(["report_link", "category", "comment"]):
-        report[name] = json.loads(raw_report["tiktok_report.fields"])["items"][index]["inputValue"]
+        if (
+            name == "category"
+            and json.loads(raw_report["tiktok_report.fields"])["items"][index]["inputValue"] == "Other"
+        ):
+            report[name] = json.loads(raw_report["tiktok_report.fields"])["items"][index]["inputExtra"]
+        else:
+            report[name] = json.loads(raw_report["tiktok_report.fields"])["items"][index]["inputValue"]
     report["cover_image"] = asyncio.run(get_cover_image(report["report_link"]))
     if "reports" not in st.session_state:
         st.session_state["reports"] = pd.DataFrame([report])
@@ -125,11 +136,22 @@ if "reports" not in st.session_state:
 else:
     container = st.container()
     with container:
-        st.dataframe(
-            st.session_state.reports,
-            column_config={"cover_image": st.column_config.ImageColumn(width="small")},
-            height=500,
-        )
+
+        html = st.session_state.reports.style.hide(axis="index").to_html(escape=False)
+        print(html)
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Find all the td tags in the column with cover_image links
+        cover_image_cells = soup.find_all("td", class_=re.compile(r"data row\d+ col3"))
+
+        for cell in cover_image_cells:
+            image_url = cell.text.strip()
+            cell.string = ""  # Clear the current text
+            img_tag = soup.new_tag("img", src=image_url, width="100")
+            cell.append(img_tag)
+
+        st.markdown(soup.prettify(), unsafe_allow_html=True)
+
 
 with subscriber:
     try:
