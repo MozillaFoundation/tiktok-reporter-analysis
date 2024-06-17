@@ -2,7 +2,6 @@ import logging
 import os
 
 import pandas as pd
-from whispercpp import Whisper
 
 from tiktok_reporter_analysis.analyze_screen_recording import (
     analyze_screen_recording,
@@ -21,15 +20,9 @@ from moviepy.editor import VideoFileClip
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(
-    video_path, checkpoint_path, prompt_file, model, results_path, multimodal, oneimage
-):
+def classify_videos(video_path, checkpoint_path, prompt_file, model, results_path, multimodal, oneimage):
     logger.info(f"Processing screen recordings from {video_path}")
     video_paths = get_video_paths(video_path)
-
-    logger.info("Loading frame classification and whisper models")
-    whisper_model = Whisper('medium')
-    logger.info("Frame classification and whisper models loaded")
 
     transcripts = {}
     selected_frames_dataframes = []
@@ -88,7 +81,7 @@ def classify_videos(
         for video in video_start_end_time.keys():
             logger.info(f"Extracting transcript from video {video+1}/{video_counter+1}")
             current_clip = video_clip.subclip(video_start_end_time[video][0], video_start_end_time[video][1])
-            transcript = extract_transcript(current_clip, whisper_model)
+            transcript = extract_transcript(current_clip)
             transcripts[(video_path, video)] = transcript
 
         selected_frames = []

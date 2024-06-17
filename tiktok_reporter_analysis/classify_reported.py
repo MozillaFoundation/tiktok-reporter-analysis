@@ -3,7 +3,7 @@ import logging
 import os
 
 import pandas as pd
-from whispercpp import Whisper
+
 
 from moviepy.editor import VideoFileClip
 
@@ -35,10 +35,6 @@ def classify_reported(
     logger.info(f"Processing reported videos from {video_path}")
     video_paths = get_video_paths(video_path)
 
-    logger.info("Loading whisper model")
-    whisper_model = Whisper("medium")
-    logger.info("Whisper model loaded")
-
     transcripts = {}
     frames_dataframes = []
     for i, video_path in enumerate(video_paths):
@@ -53,7 +49,7 @@ def classify_reported(
                 with open(transcript_file, "r") as file:
                     transcript = file.read()
             else:
-                transcript = extract_transcript(video_clip, whisper_model)
+                transcript = extract_transcript(video_clip)
                 os.makedirs(os.path.dirname(transcript_file), exist_ok=True)
                 with open(transcript_file, "w") as file:
                     file.write(transcript)
