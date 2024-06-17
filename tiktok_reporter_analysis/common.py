@@ -9,7 +9,25 @@ import torch
 from PIL import Image
 from moviepy.editor import VideoFileClip
 
+import torch
+from transformers import pipeline
+from transformers.utils import is_flash_attn_2_available
+
 logger = logging.getLogger(__name__)
+whisper_pipe = None
+
+def initialize_whisper():
+    global whisper_pipe
+    if not whisper_pipe:
+        logger.info("Loading whisper model")
+        whisper_pipe = pipeline(
+            "automatic-speech-recognition",
+            model="openai/whisper-large-v2", # select checkpoint from https://huggingface.co/openai/whisper-large-v3#model-details
+            torch_dtype=torch.float16,
+            device=set_backend(),
+            model_kwargs={"attn_implementation": "flash_attention_2"} if is_flash_attn_2_available() else {"attn_implementation": "sdpa"},
+        )
+        logger.info("Whisper model loaded")
 
 
 def set_backend(no_mps=False):
@@ -152,9 +170,10 @@ def extract_frames(video_path, frames_path=None, only_save_selected=False):
     return frames_dataframe
 
 
-def extract_transcript(video_clip, whisper_model):
+def extract_transcript(video_clip):
+    initialize_whisper()
     audio = video_clip.audio
     with NamedTemporaryFile(suffix=".wav") as tmpfile:
         audio.write_audiofile(tmpfile.name)
-        transcript = whisper_model.transcribe(tmpfile.name)
-    return "\n".join(whisper_model.extract_text(transcript))
+        transcript = whisper_pipe(tmpfile.name, chunk_length_s=30, batch_size=24)
+    return transcript['text']
