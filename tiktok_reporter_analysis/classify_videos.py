@@ -20,12 +20,9 @@ from moviepy.editor import VideoFileClip
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(
-    video_path, checkpoint_path, prompt_file, model, results_path, multimodal, oneimage
-):
+def classify_videos(video_path, checkpoint_path, prompt_file, model, results_path, multimodal, oneimage):
     logger.info(f"Processing screen recordings from {video_path}")
     video_paths = get_video_paths(video_path)
-
 
     transcripts = {}
     selected_frames_dataframes = []

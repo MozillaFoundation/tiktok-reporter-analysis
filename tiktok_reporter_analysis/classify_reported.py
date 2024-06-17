@@ -49,7 +49,7 @@ def classify_reported(
                 with open(transcript_file, "r") as file:
                     transcript = file.read()
             else:
-                transcript = extract_transcript(video_clip, whisper_pipe)
+                transcript = extract_transcript(video_clip)
                 os.makedirs(os.path.dirname(transcript_file), exist_ok=True)
                 with open(transcript_file, "w") as file:
                     file.write(transcript)

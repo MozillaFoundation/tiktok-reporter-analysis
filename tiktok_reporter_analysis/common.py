@@ -9,12 +9,12 @@ import torch
 from PIL import Image
 from moviepy.editor import VideoFileClip
 
-import torch
 from transformers import pipeline
 from transformers.utils import is_flash_attn_2_available
 
 logger = logging.getLogger(__name__)
 whisper_pipe = None
+
 
 def initialize_whisper():
     global whisper_pipe
@@ -22,10 +22,15 @@ def initialize_whisper():
         logger.info("Loading whisper model")
         whisper_pipe = pipeline(
             "automatic-speech-recognition",
-            model="openai/whisper-large-v2", # select checkpoint from https://huggingface.co/openai/whisper-large-v3#model-details
+            model="openai/whisper-large-v2",
+            # select checkpoint from https://huggingface.co/openai/whisper-large-v3#model-details
             torch_dtype=torch.float16,
             device=set_backend(),
-            model_kwargs={"attn_implementation": "flash_attention_2"} if is_flash_attn_2_available() else {"attn_implementation": "sdpa"},
+            model_kwargs=(
+                {"attn_implementation": "flash_attention_2"}
+                if is_flash_attn_2_available()
+                else {"attn_implementation": "sdpa"}
+            ),
         )
         logger.info("Whisper model loaded")
 
@@ -130,7 +135,7 @@ def extract_frames(video_path, frames_path=None, only_save_selected=False):
     pickle_file = os.path.join(frames_path, "frames.pkl") if frames_path else None
     if frames_path and os.path.exists(pickle_file):
         logger.info("Loading frames from pickle")
-        with open(pickle_file, 'rb') as f:
+        with open(pickle_file, "rb") as f:
             frames_dataframe = pickle.load(f)
     else:
         logger.info("Extracting frames")
@@ -165,7 +170,7 @@ def extract_frames(video_path, frames_path=None, only_save_selected=False):
             logger.info("Saving frames to pickle")
             if not os.path.exists(frames_path):
                 os.makedirs(frames_path)
-            with open(pickle_file, 'wb') as f:
+            with open(pickle_file, "wb") as f:
                 pickle.dump(frames_dataframe, f)
     return frames_dataframe
 
@@ -176,4 +181,4 @@ def extract_transcript(video_clip):
     with NamedTemporaryFile(suffix=".wav") as tmpfile:
         audio.write_audiofile(tmpfile.name)
         transcript = whisper_pipe(tmpfile.name, chunk_length_s=30, batch_size=24)
-    return transcript['text']
+    return transcript["text"]
