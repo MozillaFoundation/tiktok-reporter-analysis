@@ -1,7 +1,10 @@
+# TODO: NO NEED TO EXTRACT FRAMES AND TRANSCRIPTS IF USING VIDEO MODALITY
+
 import logging
 import os
 import io
 import ollama
+import time
 
 import pandas as pd
 import json
@@ -9,6 +12,7 @@ import json
 import base64
 import openai
 
+import google.generativeai as genai
 
 from tiktok_reporter_analysis.common import (
     format_ms_timestamp,
@@ -21,6 +25,11 @@ logger = logging.getLogger(__name__)
 with open("tiktok_reporter_analysis/prompts/openai_api_key.txt", "r") as key_file:
     OPENAI_API_KEY = key_file.read().strip()
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+
+with open("tiktok_reporter_analysis/prompts/google_api_key.txt", "r") as key_file:
+    GOOGLE_API_KEY = key_file.read().strip()
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+genai.configure(api_key=GOOGLE_API_KEY)
 
 
 def image_to_base64(image_path):
@@ -39,8 +48,7 @@ def image_to_buf(image_path):
 
 
 def create_prompt_for_ollama(
-        frames, video_path, video_number, prompt,
-        fs_examples, transcript, modality_image, modality_text
+    frames, video_path, video_number, prompt, fs_examples, transcript, modality_image, modality_text
 ):
     assert modality_image <= 2, "No current support for more than two images"
     assert modality_image > 0, "No current support for zero images"
@@ -97,8 +105,7 @@ def create_prompt_for_ollama(
 
 
 def create_prompt_for_openai(
-    frames, video_path, video_number, prompt,
-    fs_examples, transcript, modality_image, modality_text
+    frames, video_path, video_number, prompt, fs_examples, transcript, modality_image, modality_text
 ):
     assert modality_image <= 2, "No current support for more than two images"
     assert modality_image > 0, "No current support for zero images"
@@ -164,7 +171,7 @@ def create_prompt_for_openai(
                 [
                     {
                         "type": "text",
-                        "text": prompt.format(transcript=transcript if modality_text and transcript else "")
+                        "text": prompt.format(transcript=transcript if modality_text and transcript else ""),
                     },
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image1}"}},
                 ]
@@ -181,9 +188,17 @@ def create_prompt_for_openai(
 
 
 def multi_modal_analysis(
-    frames, results_path, prompt_file, fs_example_file, backend,
-    model, transcripts, modality_image, modality_text,
-    modality_video, twopass
+    frames,
+    results_path,
+    prompt_file,
+    fs_example_file,
+    backend,
+    model,
+    transcripts,
+    modality_image,
+    modality_text,
+    modality_video,
+    twopass,
 ):
     frames_to_timestamps = frames.set_index("frame")["timestamp"].to_dict()
     logger.info("Running multimodal analysis")
@@ -201,15 +216,20 @@ def multi_modal_analysis(
     if backend == "openai":
         assert not modality_video, "Video modality is not supported by openai backend"
         generated_text = multi_modal_analysis_openai(
-            model, frames, prompt, fs_examples, transcripts, videos,
-            modality_image, modality_text, twopass
+            model, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
     elif backend == "ollama":
         assert not modality_video, "Video modality is not supported by ollama backend"
         generated_text = multi_modal_analysis_ollama(
-            model, frames, prompt, fs_examples, transcripts, videos,
-            modality_image, modality_text, twopass
+            model, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
+    elif backend == "google":
+        assert modality_video, "Google backend requires video modality"
+        assert not modality_text, "Google backend does not support text modality"
+        assert modality_image == 0, "Google backend does not support image modality"
+        assert fs_examples is None or fs_examples == "", "Google backend doesn't support few-shot examples"
+        assert not twopass, "Google backend doesn't support twopass"
+        generated_text = multi_modal_analysis_google(model, frames, prompt, videos)
     else:
         assert False, "Unimplemented backend"
     output_df = pd.DataFrame(
@@ -238,9 +258,25 @@ def multi_modal_analysis(
     logger.info("Results saved")
 
 
+def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
+    results = []
+    model = genai.GenerativeModel(model_name=model_name)
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
+        current_video = video[0]
+        print(f"Uploading {current_video}")
+        video_file = genai.upload_file(path=current_video)  # TODO: batch this
+        while video_file.state.name == "PROCESSING":
+            time.sleep(10)
+            video_file = genai.get_file(video_file.name)
+        response = model.generate_content([raw_prompt, video_file], request_options={"timeout": 600})
+        results.append((video, response.text))
+
+    return {video: r for video, r in results}
+
+
 def multi_modal_analysis_ollama(
-    model, frames, raw_prompt, fs_examples, transcripts, videos,
-    modality_image, modality_text, twopass
+    model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
 ):
     results = []
     for idx, video in enumerate(videos, start=1):
@@ -248,8 +284,14 @@ def multi_modal_analysis_ollama(
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_ollama(
-            frames, current_video[0], current_video[1], raw_prompt, fs_examples, current_transcript,
-            modality_image, modality_text
+            frames,
+            current_video[0],
+            current_video[1],
+            raw_prompt,
+            fs_examples,
+            current_transcript,
+            modality_image,
+            modality_text,
         )
         response = ollama.chat(model=model, messages=prompt, keep_alive=-1)
         result = response["message"]["content"]
@@ -276,8 +318,7 @@ def multi_modal_analysis_ollama(
 
 
 def multi_modal_analysis_openai(
-    model, frames, raw_prompt, fs_examples, transcripts, videos,
-    modality_image, modality_text, twopass
+    model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
 ):
     client = openai.OpenAI(
         api_key=os.environ.get("OPENAI_API_KEY"),
@@ -289,8 +330,14 @@ def multi_modal_analysis_openai(
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_openai(
-            frames, current_video[0], current_video[1], raw_prompt, fs_examples, current_transcript,
-            modality_image, modality_text
+            frames,
+            current_video[0],
+            current_video[1],
+            raw_prompt,
+            fs_examples,
+            current_transcript,
+            modality_image,
+            modality_text,
         )
         try:
             temp = client.chat.completions.create(
