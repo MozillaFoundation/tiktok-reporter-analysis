@@ -134,7 +134,7 @@ def create_frames_dataframe(frames, frame_timestamps):
 def extract_frames(video_path, frames_path=None, only_save_selected=False):
     pickle_file = os.path.join(frames_path, "frames.pkl") if frames_path else None
     if frames_path and os.path.exists(pickle_file):
-        logger.info("Loading frames from pickle")
+        logger.info(f"Loading frames from pickle: {frames_path}")
         with open(pickle_file, "rb") as f:
             frames_dataframe = pickle.load(f)
     else:

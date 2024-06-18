@@ -39,7 +39,7 @@ def classify_reported(
     frames_dataframes = []
     for i, video_path in enumerate(video_paths):
         logger.info(f"Processing video {i+1}/{len(video_paths)}: {video_path}")
-        frames_path = os.path.join(results_path, "frames", os.path.basename(video_path).split(".")[0])
+        frames_path = os.path.join(results_path, "frames", os.path.basename(video_path))
         current_frames_dataframe = extract_frames(video_path, frames_path, True)
         with VideoFileClip(video_path) as video_clip:
             transcript_file = os.path.join(
