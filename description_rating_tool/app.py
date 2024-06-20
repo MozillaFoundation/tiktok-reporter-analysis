@@ -15,7 +15,7 @@ SCOPES = [
 # The ID of your public-writeable Google Sheet
 SHEET_ID = '1idnaMs-9k7adGO1kIOeu5wR8wwkkmclQ7LjF8y4NAZE'
 
-TT_URL_FORMAT = "https://www.tiktok.com/@doesnotmatter/video/VIDEOID"
+TT_URL_FORMAT = "https://www.tiktok.com/@doesnotmatter/video/{vid}"
 
 # Authenticate and create the client
 creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
@@ -41,5 +41,5 @@ st.set_page_config(layout="wide")
 st.title("Description Eval Tool")
 
 # Print the randomly chosen video path to the page
-st.write(f"Randomly chosen video path: {random_video_path}")
+st.write(f"TikTok to evaluate: {TT_URL_FORMAT.format(vid=video_id)}")
 
