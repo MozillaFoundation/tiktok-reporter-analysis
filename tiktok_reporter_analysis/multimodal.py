@@ -8,7 +8,7 @@ import time
 
 import pandas as pd
 import json
-
+import requests
 import base64
 import openai
 
@@ -47,6 +47,65 @@ def image_to_buf(image_path):
     return buf.getvalue()
 
 
+
+def create_prompt_for_llamafile(
+    frames, video_path, video_number, raw_prompt, fs_examples, transcript, modality_image, modality_text
+):
+    assert modality_image <= 2, "No current support for more than two images"
+    assert modality_image > 0, "No current support for zero images"
+    current_frames = frames.loc[
+        (frames["video"] == video_number) & (frames["video_path"] == video_path), "image"
+    ].to_list()
+    image1 = current_frames[0]
+    image2 = current_frames[1]
+    buf = io.BytesIO()
+    image1.save(buf, format="JPEG")
+    encoded_image1 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    buf = io.BytesIO()
+    image2.save(buf, format="JPEG")
+    encoded_image2 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    if fs_examples is None:
+        fs_examples = []
+    oneimage = modality_image == 1
+    prompt = "".join(
+        [
+            (
+                '### User:'
+                + (f"[img-{2*idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
+                + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant:{e["response"]}\n'
+            )
+            for idx, e in enumerate(fs_examples)
+        ]
+    )
+    prompt = prompt + (
+        '### User:'
+        + (f"[img-{2*len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
+        + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant:'
+    )
+    images = sum(
+        [
+            (
+                [{"id": 2 * idx + 1, "data": image_to_base64(e["image1_path"])}]
+                if oneimage
+                else [
+                    {"id": 2 * idx + 1, "data": image_to_base64(e["image1_path"])},
+                    {"id": 2 * idx + 2, "data": image_to_base64(e["image2_path"])},
+                ]
+            )
+            for idx, e in enumerate(fs_examples)
+        ],
+        [],
+    ) + (
+        [{"id": 2 * len(fs_examples) + 1, "data": encoded_image1}]
+        if oneimage
+        else [
+            {"id": 2 * len(fs_examples) + 1, "data": encoded_image1},
+            {"id": 2 * len(fs_examples) + 2, "data": encoded_image2},
+        ]
+    )
+
+    return {"prompt": prompt, "image_data": images}
+
 def create_prompt_for_ollama(
     frames, video_path, video_number, prompt, fs_examples, transcript, modality_image, modality_text
 ):
@@ -64,6 +123,10 @@ def create_prompt_for_ollama(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
+    
+    if transcript and len(transcript) > 2000:
+        print("Truncating transcript")
+        transcript = transcript[:2000] + " <TRUNCATED>"
     prompt_messages = sum(
         [
             [
@@ -223,6 +286,11 @@ def multi_modal_analysis(
         generated_text = multi_modal_analysis_ollama(
             model, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
+    elif backend == "llamafile":
+        assert not modality_video, "Video modality is not supported by ollama backend"
+        generated_text = multi_modal_analysis_llamafile(
+            frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
+        )
     elif backend == "google":
         assert modality_video, "Google backend requires video modality"
         assert not modality_text, "Google backend does not support text modality"
@@ -274,13 +342,80 @@ def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
 
     return {video: r for video, r in results}
 
+def multi_modal_analysis_llamafile(
+    frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
+):
+    results = []
+    for idx, video in enumerate(videos, start=1):
+        print(f"Starting to process video number {idx}")
+        current_video = video
+        current_transcript = transcripts[current_video]
+        prompt = create_prompt_for_llamafile(
+            frames,
+            current_video[0],
+            current_video[1],
+            raw_prompt,
+            fs_examples,
+            current_transcript,
+            modality_image,
+            modality_text,
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer no-key",
+        }
+
+        data = {
+            "prompt": prompt["prompt"],
+            "max_tokens": 500,
+            "image_data": prompt["image_data"],
+        }
+        response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
+        completion = response.json()
+        #print(completion)
+        result = completion['content']
+        if result.endswith("</s>"): # llamafile emits the end of text token in current version
+            result = result[:-4]
+        if twopass:
+            first_result = f"{result}\n\n"
+            prompt = (
+                '### User:'
+                "Given the following text please choose whether to classify the video as "
+                "'informative' or 'other'. Please output nothing but one of those two words. "
+                "The text may already contain the answer, in which case you can just repeat it. "
+                f"The text is: \"{result}\".  Now just say \"informative\" if that text suggests "
+                "that the video is informative or \"other\" if the text suggests it is not."
+                "\n### Assistant:"
+            )
+            #print(f"twopass prompt is: {prompt}\n\n\n\n")
+            
+            data = {
+                "prompt": prompt,
+                "max_tokens": 500,
+            }
+            response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
+            try:
+                completion = response.json()
+                result = completion['content']
+                if result.endswith("</s>"): # llamafile emits the end of text token in current version
+                    result = result[:-4]
+            except requests.exceptions.JSONDecodeError:
+                print(f"Couldn't decode JSON\n\n{response}")
+                result = "ERROR"
+        else:
+            first_result = ""
+        results.append((video, f"{first_result}SEPERATOR{result}"))
+    logger.info("Saving results")
+
+    return {video: r for video, r in results}
 
 def multi_modal_analysis_ollama(
     model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
 ):
     results = []
     for idx, video in enumerate(videos, start=1):
-        print(f"Starting to process video number {idx}")
+        print(f"Starting to process video number {idx} ({video})")
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_ollama(
