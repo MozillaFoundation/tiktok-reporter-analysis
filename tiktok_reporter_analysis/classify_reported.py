@@ -43,7 +43,7 @@ def classify_reported(
         current_frames_dataframe = extract_frames(video_path, frames_path, True)
         with VideoFileClip(video_path) as video_clip:
             transcript_file = os.path.join(
-                results_path, "temp", "whisper_cache", os.path.basename(video_path).split(".")[0] + ".txt"
+                results_path, "temp", "whisper_cache", os.path.basename(video_path) + ".txt"
             )
             if os.path.exists(transcript_file):
                 with open(transcript_file, "r") as file:
@@ -84,6 +84,7 @@ def classify_reported(
         with open("time.txt", "w") as file:
             file.write(f"Multimodal analysis took {elapsed_time} seconds.")
     else:
+        print(transcripts)
         save_frames_and_transcripts(frames_dataframe, transcripts, results_path)
 
 
