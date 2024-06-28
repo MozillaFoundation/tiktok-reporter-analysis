@@ -16,3 +16,4 @@ fastparquet==2023.10.1
 whispercpp @ git+https://github.com/stlukey/whispercpp.py
 google-ai-generativelanguage==0.6.4
 google-generativeai==0.5.4
+lingua-language-detector==2.0.2
