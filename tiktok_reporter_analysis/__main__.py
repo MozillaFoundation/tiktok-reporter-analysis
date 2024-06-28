@@ -8,6 +8,7 @@ from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
 from tiktok_reporter_analysis.multimodal import multi_modal_from_saved
 from tiktok_reporter_analysis.render_output import generate_html_report
 from tiktok_reporter_analysis.train import train
+from tiktok_reporter_analysis.util import load_descriptions
 
 if __name__ == "__main__":
     logger = logging.getLogger("tiktok_reporter_analysis")
@@ -83,6 +84,11 @@ if __name__ == "__main__":
     extract_parser.add_argument("--frames_path", help="path to the frames folder", default="./data/frames")
     extract_parser.add_argument("--video_path", help="path to the video file")
 
+    load_parser = subparsers.add_parser("load_descriptions")
+    load_parser.add_argument("--descriptions_path", help="path to the descriptions parquet", default="data/results/video_descriptions.parquet")
+    load_parser.add_argument("--sheet_id", help="ID of Google sheet to load to", default="1idnaMs-9k7adGO1kIOeu5wR8wwkkmclQ7LjF8y4NAZE")
+    load_parser.add_argument("--current_model", help="Model used to generate descriptions")
+
     args = parser.parse_args()
 
     if args.command == "train":
@@ -117,5 +123,7 @@ if __name__ == "__main__":
         generate_html_report(args.results_path)
     elif args.command == "extract":
         extract_frames_from_video(args.video_path, args.frames_path)
+    elif args.command == "load_descriptions":
+        load_descriptions(args.descriptions_path, args.sheet_id, args.current_model)
     else:
         logger.error("Invalid command")

@@ -11,6 +11,7 @@ import json
 import requests
 import base64
 import openai
+import pickle
 
 import google.generativeai as genai
 
@@ -67,6 +68,9 @@ def create_prompt_for_llamafile(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
+    if transcript and len(transcript) > 500:
+        print("Truncating transcript")
+        transcript = transcript[:500] + " <TRUNCATED>"
     prompt = "".join(
         [
             (
@@ -124,9 +128,9 @@ def create_prompt_for_ollama(
         fs_examples = []
     oneimage = modality_image == 1
     
-    if transcript and len(transcript) > 2000:
+    if transcript and len(transcript) > 1000:
         print("Truncating transcript")
-        transcript = transcript[:2000] + " <TRUNCATED>"
+        transcript = transcript[:1000] + " <TRUNCATED>"
     prompt_messages = sum(
         [
             [
@@ -347,7 +351,7 @@ def multi_modal_analysis_llamafile(
 ):
     results = []
     for idx, video in enumerate(videos, start=1):
-        print(f"Starting to process video number {idx}")
+        print(f"Starting to process video number {idx} ({video})")
         current_video = video
         current_transcript = transcripts[current_video]
         prompt = create_prompt_for_llamafile(
@@ -371,6 +375,10 @@ def multi_modal_analysis_llamafile(
             "max_tokens": 500,
             "image_data": prompt["image_data"],
         }
+        
+        # Save data to data.pickle as well
+        #with open("data.pickle", "wb") as f:
+        #    pickle.dump(data, f)
         response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
         completion = response.json()
         #print(completion)
