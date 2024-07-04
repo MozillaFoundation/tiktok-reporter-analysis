@@ -23,14 +23,16 @@ from tiktok_reporter_analysis.common import (
 
 logger = logging.getLogger(__name__)
 
-with open("tiktok_reporter_analysis/prompts/openai_api_key.txt", "r") as key_file:
-    OPENAI_API_KEY = key_file.read().strip()
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+if os.path.exists("tiktok_reporter_analysis/prompts/openai_api_key.txt"):
+    with open("tiktok_reporter_analysis/prompts/openai_api_key.txt", "r") as key_file:
+        OPENAI_API_KEY = key_file.read().strip()
+    os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
-with open("tiktok_reporter_analysis/prompts/google_api_key.txt", "r") as key_file:
-    GOOGLE_API_KEY = key_file.read().strip()
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
-genai.configure(api_key=GOOGLE_API_KEY)
+if os.path.exists("tiktok_reporter_analysis/prompts/google_api_key.txt"):
+    with open("tiktok_reporter_analysis/prompts/google_api_key.txt", "r") as key_file:
+        GOOGLE_API_KEY = key_file.read().strip()
+    os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+    genai.configure(api_key=GOOGLE_API_KEY)
 
 
 def image_to_base64(image_path):
