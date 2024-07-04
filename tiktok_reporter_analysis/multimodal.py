@@ -75,7 +75,7 @@ def create_prompt_for_llamafile(
         [
             (
                 '### User:'
-                + (f"[img-{2*idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
+                + (f"[img-{idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
                 + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant:{e["response"]}\n'
             )
             for idx, e in enumerate(fs_examples)
@@ -83,13 +83,13 @@ def create_prompt_for_llamafile(
     )
     prompt = prompt + (
         '### User:'
-        + (f"[img-{2*len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
+        + (f"[img-{len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
         + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant:'
     )
     images = sum(
         [
             (
-                [{"id": 2 * idx + 1, "data": image_to_base64(e["image1_path"])}]
+                [{"id": idx + 1, "data": image_to_base64(e["image1_path"])}]
                 if oneimage
                 else [
                     {"id": 2 * idx + 1, "data": image_to_base64(e["image1_path"])},
@@ -100,7 +100,7 @@ def create_prompt_for_llamafile(
         ],
         [],
     ) + (
-        [{"id": 2 * len(fs_examples) + 1, "data": encoded_image1}]
+        [{"id": len(fs_examples) + 1, "data": encoded_image1}]
         if oneimage
         else [
             {"id": 2 * len(fs_examples) + 1, "data": encoded_image1},
@@ -377,8 +377,8 @@ def multi_modal_analysis_llamafile(
         }
         
         # Save data to data.pickle as well
-        #with open("data.pickle", "wb") as f:
-        #    pickle.dump(data, f)
+        with open("data.pickle", "wb") as f:
+            pickle.dump(data, f)
         response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
         completion = response.json()
         #print(completion)
