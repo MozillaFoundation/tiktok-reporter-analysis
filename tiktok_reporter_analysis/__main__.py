@@ -56,7 +56,7 @@ if __name__ == "__main__":
     reported_parser.add_argument(
         "--nomultimodal", help="do not run multimodal analysis", action="store_false", dest="multimodal", default=True
     )
-    reported_parser.add_argument("--prompt_file", help="Prompt to use")
+    reported_parser.add_argument("--prompt_file", help="Prompt to use", default="")
     reported_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
     reported_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
     reported_parser.add_argument("--model", help="Model to use", default="llavallava:34b-v1.6-fp16")
@@ -74,6 +74,20 @@ if __name__ == "__main__":
     # create the parser for the "multimodal" command
     multimodal_parser = subparsers.add_parser("analyze_multimodal")
     multimodal_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
+    multimodal_parser.add_argument("--prompt_file", help="Prompt to use")
+    multimodal_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
+    multimodal_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
+    multimodal_parser.add_argument("--model", help="Model to use", default="llavallava:34b-v1.6-fp16")
+    multimodal_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
+    multimodal_parser.add_argument(
+        "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
+    )
+    multimodal_parser.add_argument(
+        "--modality_text", help="Specify whether to include a transcript or not", action="store_true"
+    )
+    multimodal_parser.add_argument(
+        "--modality_video", help="Specify whether to include video file or not", action="store_true"
+    )
 
     # create the parser for the "report" command
     report_parser = subparsers.add_parser("report")
@@ -85,8 +99,14 @@ if __name__ == "__main__":
     extract_parser.add_argument("--video_path", help="path to the video file")
 
     load_parser = subparsers.add_parser("load_descriptions")
-    load_parser.add_argument("--descriptions_path", help="path to the descriptions parquet", default="data/results/video_descriptions.parquet")
-    load_parser.add_argument("--sheet_id", help="ID of Google sheet to load to", default="1idnaMs-9k7adGO1kIOeu5wR8wwkkmclQ7LjF8y4NAZE")
+    load_parser.add_argument(
+        "--descriptions_path",
+        help="path to the descriptions parquet",
+        default="data/results/video_descriptions.parquet",
+    )
+    load_parser.add_argument(
+        "--sheet_id", help="ID of Google sheet to load to", default="1idnaMs-9k7adGO1kIOeu5wR8wwkkmclQ7LjF8y4NAZE"
+    )
     load_parser.add_argument("--current_model", help="Model used to generate descriptions")
 
     args = parser.parse_args()
@@ -118,7 +138,17 @@ if __name__ == "__main__":
             args.twopass,
         )
     elif args.command == "analyze_multimodal":
-        multi_modal_from_saved(args.results_path)
+        multi_modal_from_saved(
+            args.results_path,
+            args.prompt_file,
+            args.fs_example_file,
+            args.backend,
+            args.model,
+            args.modality_image,
+            args.modality_text,
+            args.modality_video,
+            args.twopass,
+        )
     elif args.command == "report":
         generate_html_report(args.results_path)
     elif args.command == "extract":

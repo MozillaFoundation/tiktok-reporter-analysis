@@ -84,7 +84,6 @@ def classify_reported(
         with open("time.txt", "w") as file:
             file.write(f"Multimodal analysis took {elapsed_time} seconds.")
     else:
-        print(transcripts)
         save_frames_and_transcripts(frames_dataframe, transcripts, results_path)
 
 

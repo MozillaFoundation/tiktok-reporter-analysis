@@ -50,7 +50,6 @@ def image_to_buf(image_path):
     return buf.getvalue()
 
 
-
 def create_prompt_for_llamafile(
     frames, video_path, video_number, raw_prompt, fs_examples, transcript, modality_image, modality_text
 ):
@@ -76,7 +75,7 @@ def create_prompt_for_llamafile(
     prompt = "".join(
         [
             (
-                '### User:'
+                "### User:"
                 + (f"[img-{idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
                 + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant:{e["response"]}\n'
             )
@@ -84,7 +83,7 @@ def create_prompt_for_llamafile(
         ]
     )
     prompt = prompt + (
-        '### User:'
+        "### User:"
         + (f"[img-{len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
         + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant:'
     )
@@ -112,6 +111,7 @@ def create_prompt_for_llamafile(
 
     return {"prompt": prompt, "image_data": images}
 
+
 def create_prompt_for_ollama(
     frames, video_path, video_number, prompt, fs_examples, transcript, modality_image, modality_text
 ):
@@ -129,7 +129,7 @@ def create_prompt_for_ollama(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
-    
+
     if transcript and len(transcript) > 1000:
         print("Truncating transcript")
         transcript = transcript[:1000] + " <TRUNCATED>"
@@ -348,6 +348,7 @@ def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
 
     return {video: r for video, r in results}
 
+
 def multi_modal_analysis_llamafile(
     frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
 ):
@@ -377,29 +378,29 @@ def multi_modal_analysis_llamafile(
             "max_tokens": 500,
             "image_data": prompt["image_data"],
         }
-        
+
         # Save data to data.pickle as well
         with open("data.pickle", "wb") as f:
             pickle.dump(data, f)
         response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
         completion = response.json()
-        #print(completion)
-        result = completion['content']
-        if result.endswith("</s>"): # llamafile emits the end of text token in current version
+        # print(completion)
+        result = completion["content"]
+        if result.endswith("</s>"):  # llamafile emits the end of text token in current version
             result = result[:-4]
         if twopass:
             first_result = f"{result}\n\n"
             prompt = (
-                '### User:'
+                "### User:"
                 "Given the following text please choose whether to classify the video as "
                 "'informative' or 'other'. Please output nothing but one of those two words. "
                 "The text may already contain the answer, in which case you can just repeat it. "
-                f"The text is: \"{result}\".  Now just say \"informative\" if that text suggests "
-                "that the video is informative or \"other\" if the text suggests it is not."
+                f'The text is: "{result}".  Now just say "informative" if that text suggests '
+                'that the video is informative or "other" if the text suggests it is not.'
                 "\n### Assistant:"
             )
-            #print(f"twopass prompt is: {prompt}\n\n\n\n")
-            
+            # print(f"twopass prompt is: {prompt}\n\n\n\n")
+
             data = {
                 "prompt": prompt,
                 "max_tokens": 500,
@@ -407,8 +408,8 @@ def multi_modal_analysis_llamafile(
             response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
             try:
                 completion = response.json()
-                result = completion['content']
-                if result.endswith("</s>"): # llamafile emits the end of text token in current version
+                result = completion["content"]
+                if result.endswith("</s>"):  # llamafile emits the end of text token in current version
                     result = result[:-4]
             except requests.exceptions.JSONDecodeError:
                 print(f"Couldn't decode JSON\n\n{response}")
@@ -419,6 +420,7 @@ def multi_modal_analysis_llamafile(
     logger.info("Saving results")
 
     return {video: r for video, r in results}
+
 
 def multi_modal_analysis_ollama(
     model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
@@ -525,6 +527,28 @@ def multi_modal_analysis_openai(
     return {video: r for video, r in results}
 
 
-def multi_modal_from_saved(results_path):
+def multi_modal_from_saved(
+    results_path,
+    prompt_file,
+    fs_example_file,
+    backend,
+    model,
+    modality_image,
+    modality_text,
+    modality_video,
+    twopass,
+):
     frames, transcripts = load_frames_and_transcripts(results_path)
-    multi_modal_analysis(frames, results_path, transcripts)
+    multi_modal_analysis(
+        frames,
+        results_path,
+        prompt_file,
+        fs_example_file,
+        backend,
+        model,
+        transcripts,
+        modality_image,
+        modality_text,
+        modality_video,
+        twopass,
+    )
