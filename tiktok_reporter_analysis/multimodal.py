@@ -69,9 +69,9 @@ def create_prompt_for_llamafile(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
-    if transcript and len(transcript) > 500:
+    if transcript and len(transcript) > 1000:
         print("Truncating transcript")
-        transcript = transcript[:500] + " <TRUNCATED>"
+        transcript = transcript[:1000] + " <TRUNCATED>"
     prompt = "".join(
         [
             (
