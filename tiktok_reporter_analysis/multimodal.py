@@ -75,17 +75,17 @@ def create_prompt_for_llamafile(
     prompt = "".join(
         [
             (
-                "### User:"
+                "### User: "
                 + (f"[img-{idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
-                + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant:{e["response"]}\n'
+                + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant: {e["response"]}\n'
             )
             for idx, e in enumerate(fs_examples)
         ]
     )
     prompt = prompt + (
-        "### User:"
+        "### User: "
         + (f"[img-{len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
-        + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant:'
+        + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant: '
     )
     images = sum(
         [
@@ -108,7 +108,7 @@ def create_prompt_for_llamafile(
             {"id": 2 * len(fs_examples) + 2, "data": encoded_image2},
         ]
     )
-
+    print(prompt)
     return {"prompt": prompt, "image_data": images}
 
 
@@ -287,13 +287,27 @@ def multi_modal_analysis(
         generated_text = multi_modal_analysis_openai(
             model, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
+    elif backend == "lmstudio":
+        assert not modality_video, "Video modality is not supported by lmstudio backend"
+        generated_text = multi_modal_analysis_openai(
+            model,
+            frames,
+            prompt,
+            fs_examples,
+            transcripts,
+            videos,
+            modality_image,
+            modality_text,
+            twopass,
+            "http://localhost:1234/v1",
+        )
     elif backend == "ollama":
         assert not modality_video, "Video modality is not supported by ollama backend"
         generated_text = multi_modal_analysis_ollama(
             model, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
     elif backend == "llamafile":
-        assert not modality_video, "Video modality is not supported by ollama backend"
+        assert not modality_video, "Video modality is not supported by llamafile backend"
         generated_text = multi_modal_analysis_llamafile(
             frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
@@ -375,16 +389,16 @@ def multi_modal_analysis_llamafile(
 
         data = {
             "prompt": prompt["prompt"],
-            "max_tokens": 500,
+            "n_predict": 500,
             "image_data": prompt["image_data"],
         }
 
         # Save data to data.pickle as well
-        with open("data.pickle", "wb") as f:
-            pickle.dump(data, f)
+        # with open("data.pickle", "wb") as f:
+        #     pickle.dump(data, f)
         response = requests.post("http://localhost:8080/completion", headers=headers, data=json.dumps(data))
         completion = response.json()
-        # print(completion)
+        print(completion)
         result = completion["content"]
         if result.endswith("</s>"):  # llamafile emits the end of text token in current version
             result = result[:-4]
@@ -465,11 +479,17 @@ def multi_modal_analysis_ollama(
 
 
 def multi_modal_analysis_openai(
-    model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
+    model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass, base_url=None
 ):
-    client = openai.OpenAI(
-        api_key=os.environ.get("OPENAI_API_KEY"),
-    )
+    if base_url:
+        client = openai.OpenAI(
+            base_url=base_url,
+            api_key="not needed",
+        )
+    else:
+        client = openai.OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+        )
     logger.info("Using OpenAI API")
     results = []
     for idx, video in enumerate(videos, start=1):

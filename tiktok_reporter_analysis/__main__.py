@@ -76,8 +76,8 @@ if __name__ == "__main__":
     multimodal_parser.add_argument("--results_path", help="path to the results folder", default="./data/results")
     multimodal_parser.add_argument("--prompt_file", help="Prompt to use")
     multimodal_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
-    multimodal_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
-    multimodal_parser.add_argument("--model", help="Model to use", default="llavallava:34b-v1.6-fp16")
+    multimodal_parser.add_argument("--backend", help="Backend to use (ollama, lmstudio, openai, or gemini)", default="ollama")
+    multimodal_parser.add_argument("--model", help="Model to use", default="")
     multimodal_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
     multimodal_parser.add_argument(
         "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
