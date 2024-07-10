@@ -59,7 +59,7 @@ if __name__ == "__main__":
     reported_parser.add_argument("--prompt_file", help="Prompt to use", default="")
     reported_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
     reported_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
-    reported_parser.add_argument("--model", help="Model to use", default="llavallava:34b-v1.6-fp16")
+    reported_parser.add_argument("--model", help="Model to use", default="")
     reported_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
     reported_parser.add_argument(
         "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
