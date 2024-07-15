@@ -76,7 +76,7 @@ def create_prompt_for_llamafile(
         [
             (
                 "### User: "
-                + (f"[img-{idx+1}]" if oneimage else f"[img-{2*idx+1}][img-{2*idx+2}]")
+                + (f"[img-{idx + 1}]" if oneimage else f"[img-{2 * idx + 1}][img-{2 * idx + 2}]")
                 + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant: {e["response"]}\n'
             )
             for idx, e in enumerate(fs_examples)
@@ -84,7 +84,10 @@ def create_prompt_for_llamafile(
     )
     prompt = prompt + (
         "### User: "
-        + (f"[img-{len(fs_examples)+1}]" if oneimage else f"[img-{2*len(fs_examples)+1}][img-{2*len(fs_examples)+2}]")
+        + (
+            f"[img-{len(fs_examples) + 1}]" if oneimage
+            else f"[img-{2 * len(fs_examples) + 1}][img-{2 * len(fs_examples) + 2}]"
+        )
         + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant: '
     )
     images = sum(
@@ -130,9 +133,9 @@ def create_prompt_for_ollama(
         fs_examples = []
     oneimage = modality_image == 1
 
-    if transcript and len(transcript) > 1000:
+    if transcript and len(transcript) > 10000:
         print("Truncating transcript")
-        transcript = transcript[:1000] + " <TRUNCATED>"
+        transcript = transcript[:10000] + " <TRUNCATED>"
     prompt_messages = sum(
         [
             [
@@ -263,6 +266,7 @@ def multi_modal_analysis(
     fs_example_file,
     backend,
     model,
+    context,
     transcripts,
     modality_image,
     modality_text,
@@ -304,7 +308,7 @@ def multi_modal_analysis(
     elif backend == "ollama":
         assert not modality_video, "Video modality is not supported by ollama backend"
         generated_text = multi_modal_analysis_ollama(
-            model, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
+            model, context, frames, prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
         )
     elif backend == "llamafile":
         assert not modality_video, "Video modality is not supported by llamafile backend"
@@ -437,8 +441,12 @@ def multi_modal_analysis_llamafile(
 
 
 def multi_modal_analysis_ollama(
-    model, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
+    model, context, frames, raw_prompt, fs_examples, transcripts, videos, modality_image, modality_text, twopass
 ):
+    try:
+        context = int(context)
+    except ValueError:
+        raise ValueError("Context length for ollama backend must be an integer")
     results = []
     for idx, video in enumerate(videos, start=1):
         print(f"Starting to process video number {idx} ({video})")
@@ -454,7 +462,7 @@ def multi_modal_analysis_ollama(
             modality_image,
             modality_text,
         )
-        response = ollama.chat(model=model, messages=prompt, keep_alive=-1)
+        response = ollama.chat(model=model, messages=prompt, keep_alive=-1, options={"num_ctx": context})
         result = response["message"]["content"]
         if twopass:
             prompt = [
@@ -553,6 +561,7 @@ def multi_modal_from_saved(
     fs_example_file,
     backend,
     model,
+    context,
     modality_image,
     modality_text,
     modality_video,
@@ -566,6 +575,7 @@ def multi_modal_from_saved(
         fs_example_file,
         backend,
         model,
+        context,
         transcripts,
         modality_image,
         modality_text,

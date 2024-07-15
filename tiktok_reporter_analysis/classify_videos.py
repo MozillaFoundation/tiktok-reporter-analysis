@@ -20,7 +20,19 @@ from moviepy.editor import VideoFileClip
 logger = logging.getLogger(__name__)
 
 
-def classify_videos(video_path, checkpoint_path, prompt_file, model, results_path, multimodal, oneimage):
+def classify_videos(
+    video_path,
+    checkpoint_path,
+    prompt_file,
+    backend,
+    model,
+    context,
+    modality_image,
+    modality_text,
+    modality_video,
+    results_path,
+    multimodal,
+):
     logger.info(f"Processing screen recordings from {video_path}")
     video_paths = get_video_paths(video_path)
 
@@ -98,7 +110,18 @@ def classify_videos(video_path, checkpoint_path, prompt_file, model, results_pat
     logger.info("Frames and transcripts extracted")
     if multimodal:
         multi_modal_analysis(
-            selected_frames_dataframe, results_path, prompt_file, "", model, transcripts, False, oneimage
+            selected_frames_dataframe,
+            results_path,
+            prompt_file,
+            "",
+            backend,
+            model,
+            context,
+            transcripts,
+            modality_image,
+            modality_text,
+            modality_video,
+            False
         )
     else:
         save_frames_and_transcripts(selected_frames_dataframe, transcripts, results_path)

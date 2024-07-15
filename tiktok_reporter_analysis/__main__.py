@@ -46,8 +46,19 @@ if __name__ == "__main__":
     analyze_parser.add_argument(
         "--prompt_file", help="Prompt to use", default="tiktok_reporter_analysis/prompts/gpt_prompt.txt"
     )
-    analyze_parser.add_argument("--model", help="Model to use (idefics, llava, or gpt)", default="gpt")
-    analyze_parser.add_argument("--oneimage", help="Use only one frame of each video", action="store_true")
+    analyze_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
+    analyze_parser.add_argument("--model", help="Model to use", default="")
+    analyze_parser.add_argument("--context", help="Context length to use for ollama", default="")
+    analyze_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
+    analyze_parser.add_argument(
+        "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
+    )
+    analyze_parser.add_argument(
+        "--modality_text", help="Specify whether to include a transcript or not", action="store_true"
+    )
+    analyze_parser.add_argument(
+        "--modality_video", help="Specify whether to include video file or not", action="store_true"
+    )
 
     # create the parser for the "reported" command
     reported_parser = subparsers.add_parser("analyze_reported")
@@ -60,6 +71,7 @@ if __name__ == "__main__":
     reported_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
     reported_parser.add_argument("--backend", help="Backend to use (ollama, openai, or gemini)", default="ollama")
     reported_parser.add_argument("--model", help="Model to use", default="")
+    reported_parser.add_argument("--context", help="Context length to use for ollama", default="")
     reported_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
     reported_parser.add_argument(
         "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
@@ -78,6 +90,7 @@ if __name__ == "__main__":
     multimodal_parser.add_argument("--fs_example_file", help="Few-shot examples to use", default="")
     multimodal_parser.add_argument("--backend", help="Backend to use (ollama, lmstudio, openai, or gemini)", default="ollama")
     multimodal_parser.add_argument("--model", help="Model to use", default="")
+    multimodal_parser.add_argument("--context", help="Context length to use for ollama", default="")
     multimodal_parser.add_argument("--twopass", help="Use two pass approach", action="store_true")
     multimodal_parser.add_argument(
         "--modality_image", help="Specify the number of frames to use from each video", type=int, default=0
@@ -118,10 +131,14 @@ if __name__ == "__main__":
             args.video_path,
             args.checkpoint_path,
             args.prompt_file,
+            args.backend,
             args.model,
+            args.context,
+            args.modality_image,
+            args.modality_text,
+            args.modality_video,
             args.results_path,
             args.multimodal,
-            args.oneimage,
         )
     elif args.command == "analyze_reported":
         classify_reported(
@@ -131,6 +148,7 @@ if __name__ == "__main__":
             args.fs_example_file,
             args.backend,
             args.model,
+            args.context,
             args.modality_image,
             args.modality_text,
             args.modality_video,
@@ -144,6 +162,7 @@ if __name__ == "__main__":
             args.fs_example_file,
             args.backend,
             args.model,
+            args.context,
             args.modality_image,
             args.modality_text,
             args.modality_video,
