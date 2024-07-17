@@ -80,6 +80,28 @@ elif sys.argv[1] == 'train' or sys.argv[1] == 'moretrain':
         for id in sampled_ids:
             print(str(id))
 
-        # while read number; do cp ~/Documents/Lion\'s\ data/WI_repro_videos_only/${number}.mp4 '/Users/jessemccrosky/git/tiktok-reporter-analysis/data/videos/test2'; done  < /Users/jessemccrosky/git/tiktok-reporter-analysis/data/classification_data/test2.txt
+elif sys.argv[1] == 'finaltest':
+    # Load train ids
+    with open('data/classification_data/train.txt', 'r') as f:
+        train_ids = [line.strip() for line in f]
+
+    # Filter out train ids
+    df = df[~df['id'].isin(train_ids)]
+
+    # Get all informative ids
+    informative_ids = df[df['category'] == 'informative']['id'].tolist()
+
+    # Sample an equal number of non-informative ids
+    other_ids = df[df['category'] != 'informative'].sample(len(informative_ids))['id'].tolist()
+
+    # Combine the lists
+    sampled_ids = informative_ids + other_ids
+
+    # Write the list of ids to a file, one id per line
+    with open('data/classification_data/finaltest.txt', 'w') as f:
+        for id in sampled_ids:
+            f.write(str(id) + '\n')
+
+        # while read number; do cp ~/Documents/Lion\'s\ data/WI_repro_videos_only/${number}.mp4 '/Users/jessemccrosky/git/tiktok-reporter-analysis/data/videos/finaltest'; done  < /Users/jessemccrosky/git/tiktok-reporter-analysis/data/classification_data/finaltest.txt
 # python3 tiktok_reporter_analysis/eval_weizenbaum.py
 # time python3 -m tiktok_reporter_analysis analyze_reported data/videos/test1/ --prompt_file=tiktok_reporter_analysis/prompts/llava_prompt_weizenbaum.txt --multimodal --model=lmstudio
