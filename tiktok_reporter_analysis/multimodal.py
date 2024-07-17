@@ -69,15 +69,15 @@ def create_prompt_for_llamafile(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
-    if transcript and len(transcript) > 1000:
+    if modality_text != 0 and transcript and len(transcript) > modality_text:
         print("Truncating transcript")
-        transcript = transcript[:1000] + " <TRUNCATED>"
+        transcript = transcript[:modality_text] + " <TRUNCATED>"
     prompt = "".join(
         [
             (
                 "### User: "
                 + (f"[img-{idx + 1}]" if oneimage else f"[img-{2 * idx + 1}][img-{2 * idx + 2}]")
-                + f'{raw_prompt.format(transcript=e["transcript"])}\n### Assistant: {e["response"]}\n'
+                + f'{raw_prompt.format(transcript=e["transcript"] if modality_text != 0 else "")}\n### Assistant: {e["response"]}\n'
             )
             for idx, e in enumerate(fs_examples)
         ]
@@ -88,7 +88,7 @@ def create_prompt_for_llamafile(
             f"[img-{len(fs_examples) + 1}]" if oneimage
             else f"[img-{2 * len(fs_examples) + 1}][img-{2 * len(fs_examples) + 2}]"
         )
-        + f'{raw_prompt.format(transcript=(transcript if transcript else ""))}\n### Assistant: '
+        + f'{raw_prompt.format(transcript=(transcript if transcript and modality_text != 0 else ""))}\n### Assistant: '
     )
     images = sum(
         [
@@ -133,15 +133,15 @@ def create_prompt_for_ollama(
         fs_examples = []
     oneimage = modality_image == 1
 
-    if transcript and len(transcript) > 10000:
+    if transcript and modality_text != 0 and len(transcript) > modality_text:
         print("Truncating transcript")
-        transcript = transcript[:10000] + " <TRUNCATED>"
+        transcript = transcript[:modality_text] + " <TRUNCATED>"
     prompt_messages = sum(
         [
             [
                 {
                     "role": "user",
-                    "content": prompt.format(transcript=e["transcript"]),
+                    "content": prompt.format(transcript=e["transcript"] if modality_text != 0 else ""),
                     "images": (
                         [image_to_buf(e["image1_path"])]
                         if oneimage
@@ -162,7 +162,7 @@ def create_prompt_for_ollama(
     ) + [
         {
             "role": "user",
-            "content": prompt.format(transcript=transcript if (modality_text and transcript) else ""),
+            "content": prompt.format(transcript=transcript if (modality_text != 0 and transcript) else ""),
             "images": (
                 [buf1.getvalue()]
                 if oneimage
@@ -195,6 +195,9 @@ def create_prompt_for_openai(
     if fs_examples is None:
         fs_examples = []
     oneimage = modality_image == 1
+    if transcript and modality_text != 0 and len(transcript) > modality_text:
+        print("Truncating transcript")
+        transcript = transcript[:modality_text] + " <TRUNCATED>"
     prompt_messages = sum(
         [
             [
@@ -204,7 +207,7 @@ def create_prompt_for_openai(
                         [
                             {
                                 "type": "text",
-                                "text": prompt.format(transcript=e["transcript"]),
+                                "text": prompt.format(transcript=e["transcript"] if modality_text != 0 else ""),
                             },
                             {
                                 "type": "image_url",
@@ -215,7 +218,7 @@ def create_prompt_for_openai(
                         else [
                             {
                                 "type": "text",
-                                "text": prompt.format(transcript=e["transcript"]),
+                                "text": prompt.format(transcript=e["transcript"] if modality_text != 0 else ""),
                             },
                             {
                                 "type": "image_url",
@@ -243,7 +246,7 @@ def create_prompt_for_openai(
                 [
                     {
                         "type": "text",
-                        "text": prompt.format(transcript=transcript if modality_text and transcript else ""),
+                        "text": prompt.format(transcript=transcript if modality_text != 0 and transcript else ""),
                     },
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image1}"}},
                 ]
