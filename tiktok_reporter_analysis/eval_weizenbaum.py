@@ -75,17 +75,49 @@ for index, row in merged_df.iterrows():
 # Calculate and print precision, recall, F1, and accuracy
 
 
-precision = precision_score(true_labels, predicted_labels, average="binary", pos_label="informative")
-recall = recall_score(true_labels, predicted_labels, average="binary", pos_label="informative")
-f1 = f1_score(true_labels, predicted_labels, average="binary", pos_label="informative")
-accuracy = accuracy_score(true_labels, predicted_labels)
+from sklearn.utils import resample
+import numpy as np
+
+def compute_confidence_interval(data, confidence=0.95):
+    n = len(data)
+    mean = np.mean(data)
+    se = np.std(data, ddof=1) / np.sqrt(n)
+    h = se * 1.96  # For 95% confidence
+    return mean, mean - h, mean + h
+
+# Bootstrap resampling to compute confidence intervals
+n_iterations = 1000
+precision_scores = []
+recall_scores = []
+f1_scores = []
+accuracy_scores = []
+
+for _ in range(n_iterations):
+    indices = resample(range(len(true_labels)), replace=True)
+    resampled_true = [true_labels[i] for i in indices]
+    resampled_pred = [predicted_labels[i] for i in indices]
+    
+    precision_scores.append(precision_score(resampled_true, resampled_pred, average="binary", pos_label="informative"))
+    recall_scores.append(recall_score(resampled_true, resampled_pred, average="binary", pos_label="informative"))
+    f1_scores.append(f1_score(resampled_true, resampled_pred, average="binary", pos_label="informative"))
+    accuracy_scores.append(accuracy_score(resampled_true, resampled_pred))
+
+precision = np.mean(precision_scores)
+recall = np.mean(recall_scores)
+f1 = np.mean(f1_scores)
+accuracy = np.mean(accuracy_scores)
+
+precision_mean, precision_lower, precision_upper = compute_confidence_interval(precision_scores)
+recall_mean, recall_lower, recall_upper = compute_confidence_interval(recall_scores)
+f1_mean, f1_lower, f1_upper = compute_confidence_interval(f1_scores)
+accuracy_mean, accuracy_lower, accuracy_upper = compute_confidence_interval(accuracy_scores)
 
 tn, fp, fn, tp = confusion_matrix(true_labels, predicted_labels).ravel()
 
-print(f"Precision: {precision}")
-print(f"Recall: {recall}")
-print(f"F1 Score: {f1}")
-print(f"Accuracy: {accuracy}")
+print(f"Precision: {precision} (95% CI: {precision_lower} - {precision_upper})")
+print(f"Recall: {recall} (95% CI: {recall_lower} - {recall_upper})")
+print(f"F1 Score: {f1} (95% CI: {f1_lower} - {f1_upper})")
+print(f"Accuracy: {accuracy} (95% CI: {accuracy_lower} - {accuracy_upper})")
 print(f"True Positives: {tp}")
 print(f"False Positives: {fp}")
 print(f"True Negatives: {tn}")

@@ -1,0 +1,1 @@
+Classify this video into either 'informative' or 'other'. Please think step by step and explain your reasoning to choose a category of either 'informative' or 'other'. Please answer in English, ending your answer with the word 'informative' or 'other'. Stop responding after providing your answer.

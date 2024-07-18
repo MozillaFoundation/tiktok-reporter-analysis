@@ -354,6 +354,24 @@ def multi_modal_analysis(
 
 
 def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
+    safety_settings = [
+        {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE",
+        },
+    ]
     results = []
     model = genai.GenerativeModel(model_name=model_name)
     for idx, video in enumerate(videos, start=1):
@@ -364,8 +382,12 @@ def multi_modal_analysis_google(model_name, frames, raw_prompt, videos):
         while video_file.state.name == "PROCESSING":
             time.sleep(10)
             video_file = genai.get_file(video_file.name)
-        response = model.generate_content([raw_prompt, video_file], request_options={"timeout": 600})
-        results.append((video, response.text))
+        response = model.generate_content([raw_prompt, video_file], request_options={"timeout": 600}, safety_settings=safety_settings)
+        try:
+            results.append((video, response.text))
+        except ValueError:
+            print("Error in response:", response)
+            results.append((video, "MODEL ERROR"))
 
     return {video: r for video, r in results}
 
