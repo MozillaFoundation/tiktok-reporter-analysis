@@ -137,12 +137,48 @@ def extract_frames(video_path, frames_path=None, only_save_selected=False, save_
         logger.info(f"Loading frames from pickle: {frames_path}")
         with open(pickle_file, "rb") as f:
             frames_dataframe = pickle.load(f)
+        
+        if save_frames: # TODO: refactor
+            png_files = [f for f in os.listdir(frames_path) if f.endswith('.png')]
+            if not png_files:
+                logger.info("No PNG files found, extracting frames")
+                cap = cv2.VideoCapture(video_path)
+                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                clip = VideoFileClip(video_path)
+                duration = clip.duration
+
+                logger.info(f"video_clip.duration={duration} and frame_count={frame_count}")
+
+                frames_dataframe_rows = []
+                logger.info(f"There are {frame_count} frames to process")
+                frame_index = 0
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frame_image = Image.fromarray(frame_rgb)
+                    frame_timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)
+                    frames_dataframe_rows.append(
+                        pd.DataFrame({"frame": [frame_index], "timestamp": [frame_timestamp], "image": [frame_image]})
+                    )
+                    if save_frames and frames_path:
+                        frame_image.save(os.path.join(frames_path, f"frame_{frame_index}.png"))
+                    frame_index = frame_index + 1
+                logger.info("Frames extracted")
+                frames_dataframe = pd.concat(frames_dataframe_rows, ignore_index=True)
+                if only_save_selected:
+                    frames_dataframe = select_frames(frames_dataframe)
+                if pickle_file:
+                    logger.info("Saving frames to pickle")
+                    if not os.path.exists(frames_path):
+                        os.makedirs(frames_path)
+                    with open(pickle_file, "wb") as f:
+                        pickle.dump(frames_dataframe, f)
     else:
         logger.info("Extracting frames")
         cap = cv2.VideoCapture(video_path)
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        # cv2 can't reliably get FPS or duration, so use moviepy to get duration.
-        # We still use cv2 to extract frames as it's faster.
         clip = VideoFileClip(video_path)
         duration = clip.duration
 

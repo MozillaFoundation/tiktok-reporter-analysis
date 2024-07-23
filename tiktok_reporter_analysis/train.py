@@ -9,7 +9,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from tiktok_reporter_analysis.common import set_backend
-from tiktok_reporter_analysis.extract_frames import extract_frames_from_video
+from tiktok_reporter_analysis.common import extract_frames
 
 logger = logging.getLogger(__name__)
 
@@ -108,12 +108,13 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
         video_path = os.path.join(recordings_dir, data[i]["filename"])
         logger.info(f"Extracting frames from video: {video_path}")
         frames_path = os.path.join(image_folder, os.path.basename(video_path).split(".")[0])
-        extract_frames_from_video(video_path, frames_path)
+        os.makedirs(frames_path, exist_ok=True)
+        extract_frames(video_path, frames_path, save_frames=True)
 
         current_image_files = [
             os.path.join(frames_path, f)
             for f in os.listdir(frames_path)
-            if os.path.isfile(os.path.join(frames_path, f))
+            if os.path.isfile(os.path.join(frames_path, f)) and not f.endswith('.pkl')
         ]
         logger.info(f"There are {len(current_image_files)} files and {len(current_labels)} labels.")
         current_image_files.sort()
