@@ -1,6 +1,7 @@
 [
 	{
 		"filename": "ios2.mp4",
+		"split": "test",
 		"recorded_date": "20240710",
 		"recorded_by": "Jesse",
 		"record_app": "FYP Reporter iOS",
@@ -51,6 +52,7 @@
 	},
 	{
 		"filename": "ios1.mp4",
+		"split": "train",
 		"recorded_date": "20240710",
 		"recorded_by": "Jesse",
 		"record_app": "FYP Reporter iOS",
@@ -109,6 +111,7 @@
 	},
 	{
 		"filename": "and2.mp4",
+		"split": "train",
 		"recorded_date": "20240710",
 		"recorded_by": "Jesse",
 		"record_app": "FYP Reporter Android",
@@ -161,6 +164,7 @@
 	},
 	{
 		"filename": "and1.mp4",
+		"split": "train",
 		"recorded_date": "20240710",
 		"recorded_by": "Jesse",
 		"record_app": "FYP Reporter Android",
@@ -210,6 +214,7 @@
 	},
 	{
 		"filename": "RecordIt-1692790452.mp4",
+		"split": "train",
 		"recorded_date": "",
 		"recorded_by": "Jesse",
 		"record_app": "record_it_ios",
@@ -244,6 +249,7 @@
 	
 	{
 		"filename": "RecordIt-1693292574.mp4",
+		"split": "train",
 		"recorded_date": "20230829",
 		"recorded_by": "Jesse",
 		"record_app": "record_it_ios",

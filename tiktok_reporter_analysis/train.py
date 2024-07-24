@@ -96,13 +96,14 @@ def evaluate(model, test_loader, criterion, device):
 def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
     # Load paths and labels
     image_folder = frames_dir
-    labels = []
-    image_files = []
+    labels = {"test": [], "train": []}
+    image_files = {"test": [], "train": []}
 
     with open(labels_file, "r") as f:
         data = json.load(f)
 
     for i in range(len(data)):
+        split = data[i]["split"]
         current_labels = generate_label_list(data[i]["events"])
 
         video_path = os.path.join(recordings_dir, data[i]["filename"])
@@ -114,12 +115,12 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
         current_image_files = [
             os.path.join(frames_path, f)
             for f in os.listdir(frames_path)
-            if os.path.isfile(os.path.join(frames_path, f)) and not f.endswith('.pkl')
+            if os.path.isfile(os.path.join(frames_path, f)) and not f.endswith(".pkl")
         ]
         logger.info(f"There are {len(current_image_files)} files and {len(current_labels)} labels.")
-        current_image_files.sort()
-        labels += current_labels
-        image_files += current_image_files
+        current_image_files.sort(key=lambda x: int("".join(filter(str.isdigit, os.path.basename(x)))))
+        labels[split] += current_labels
+        image_files[split] += current_image_files
 
     transform = transforms.Compose(
         [
@@ -128,12 +129,10 @@ def train(frames_dir, recordings_dir, labels_file, checkpoint_dir):
         ]
     )
 
-    logger.info(f"There full dataset has {len(image_files)} files and {len(labels)} labels.")
-    full_dataset = CustomDataset(image_files, labels, transform=transform)
-
-    train_size = int(0.8 * len(full_dataset))
-    test_size = len(full_dataset) - train_size
-    train_dataset, test_dataset = random_split(full_dataset, [train_size, test_size])
+    logger.info(f"There train dataset has {len(image_files['train'])} files and {len(labels['train'])} labels.")
+    logger.info(f"There test dataset has {len(image_files['test'])} files and {len(labels['test'])} labels.")
+    train_dataset = CustomDataset(image_files["train"], labels["train"], transform=transform)
+    test_dataset = CustomDataset(image_files["test"], labels["test"], transform=transform)
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
